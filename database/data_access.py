@@ -9,15 +9,15 @@ class DataAccess():
 
     def get_account(self):
         if self.db_cursor:
-            query = "SELECT username, passwd FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
+            query = "SELECT username, passwd `password`, account_status `status` FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
             self.db_cursor.execute(query)
             result = self.db_cursor.fetchone()
             return result
 
-    def add_account(self, username, password, account_name, date_of_birth, gender, mobile_no, account_status=0):
+    def add_account(self, username, password, account_name, date_of_birth, gender, mobile_no, recovery_email='', account_status=0):
         if self.db_cursor and self.db_conn:
-            query = "INSERT INTO naverkin_user(username, passwd, account_name, date_of_birth, gender, mobile_no, account_status) VALUES(%s, %s, %s, %s, %s, %s, %s)"
-            params = (username, password, account_name, date_of_birth, gender, mobile_no, str(account_status))
+            query = "INSERT INTO naverkin_user(username, passwd, recovery_email, account_name, date_of_birth, gender, mobile_no, account_status) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
+            params = (username, password, recovery_email, account_name, date_of_birth, gender, mobile_no, str(account_status))
             self.db_cursor.execute(query, params)
             self.db_conn.commit()
     
@@ -30,7 +30,7 @@ class DataAccess():
     
     def get_question(self):
         if self.db_cursor:
-            query = "SELECT question_id FROM naverkin_question WHERE respondent_user = '' LIMIT 1;"
+            query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE respondent_user = '' AND question_status = 0 LIMIT 1;"
             self.db_cursor.execute(query)
             result = self.db_cursor.fetchone()
             return result
