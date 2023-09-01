@@ -6,7 +6,7 @@ from utils import get_logger
 from dotenv import load_dotenv
 load_dotenv()
 
-PORT = int(os.getenv('PORT'))
+PORT = int(os.getenv('SERVER_PORT'))
 CODEC = os.getenv('CODEC')
 SERVER_IP = socket.gethostbyname(socket.gethostname())
 logger = get_logger('server', 'logs/server.log')

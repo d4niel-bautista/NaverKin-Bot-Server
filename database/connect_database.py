@@ -4,10 +4,10 @@ import traceback
 from dotenv import load_dotenv
 load_dotenv()
 
-HOST = os.getenv('HOST')
-USER = os.getenv('USER')
-PASSWORD = os.getenv('PASSWORD')
-PORT = os.getenv('PORT')
+HOST = os.getenv('DB_HOST')
+USER = os.getenv('DB_USER')
+PASSWORD = os.getenv('DB_PASSWORD')
+PORT = os.getenv('DB_PORT')
 DATABASE = os.getenv('DATABASE')
 
 def connect_database():
