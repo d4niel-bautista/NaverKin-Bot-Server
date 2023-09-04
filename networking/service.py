@@ -40,4 +40,21 @@ class Service():
         elif request['message'] == 'GET_QUESTION':
             respondent = request['data']['username']
             response = self.get_question(respondent)
+        elif request['message'] == 'UPDATE_ACCOUNT':
+            username = request['data']['username']
+            status = request['data']['status']
+            self.update_account(username=username, status=status)
+            if status == 0:
+                response = f"UPDATED {username} TO AVAILABLE"
+            elif status == 1:
+                response = f"UPDATED {username} TO ACTIVE"
+            elif status == 2:
+                response = f"UPDATED {username} TO REACHED ID LIMIT"
+            elif status == 3:
+                response = f"UPDATED {username} TO TERMINATED"
+        elif request['message'] == 'UPDATE_QUESTION':
+            id = request['data']['id']
+            respondent = request['data']['respondent']
+            self.update_question(id=id, respondent=respondent)
+            response = f"UPDATED {id} TO ANSWERED"
         return response
