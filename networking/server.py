@@ -2,6 +2,8 @@ import socket
 import threading
 import os
 from .client_handler import ClientHandler
+from .service import Service
+from database.data_access import DataAccess
 from utils import get_logger
 from dotenv import load_dotenv
 load_dotenv()
@@ -32,7 +34,9 @@ class Server():
                 logger.exception('\n')
 
     def handle_client(self, conn, addr):
-        client_handler = ClientHandler(conn, addr, self)
+        data_access = DataAccess()
+        service = Service(data_access)
+        client_handler = ClientHandler(conn, addr, self, service)
         self.client_handlers.append(client_handler)
         client_thread = threading.Thread(target=client_handler.start)
         client_thread.start()

@@ -14,13 +14,15 @@ class ClientHandler():
     addr = None
     conn = None
     server = None
+    service = None
     running = False
 
-    def __init__(self, conn: socket.socket, addr, server):
+    def __init__(self, conn: socket.socket, addr, server, service):
         self.conn = conn
         self.addr = addr
         self.running = True
         self.server = server
+        self.service = service
         logger.info(f'[CLIENT::{self.addr[0]}] has connected.')
 
     def start(self):
@@ -28,7 +30,7 @@ class ClientHandler():
             try:
                 msg = self.receive()
                 if msg:
-                    self.process_message(msg)
+                    self.process_request(msg)
             except ConnectionError as e:
                 logger.error(e)
                 self.close()
@@ -42,15 +44,14 @@ class ClientHandler():
         message = self.conn.recv(HEADER_LEN).decode(CODEC)
         return message
 
-    def process_message(self, message):
-        message = json.loads(message)
-        if msg.DISCONNECT in message:
+    def process_request(self, request):
+        request = json.loads(request)
+        if request['message'] == 'DISCONNECT':
             self.send('OK')
             self.close()
-        elif msg.GET_ID in message:
-            print(message)
         else:
-            print(message)
+            response = self.service.process_request(request)
+            self.send(response)
 
     def close(self):
         self.running = False
