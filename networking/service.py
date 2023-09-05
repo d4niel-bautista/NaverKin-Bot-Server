@@ -43,6 +43,15 @@ class Service():
     def save_cookies(self, **kwargs):
         self.data_access.save_session(**kwargs)
     
+    def get_useragent(self, **kwargs):
+        useragent = self.data_access.fetch_session(**kwargs)
+        if useragent:
+            return useragent
+        return f"USER {kwargs['username']} HAS NO USER AGENT SAVED!"
+    
+    def save_useragent(self, **kwargs):
+        self.data_access.save_session(**kwargs)
+    
     def process_request(self, request):
         if request['message'] == 'GET_ACCOUNT':
             response = self.get_account()
@@ -71,7 +80,15 @@ class Service():
             response = self.get_cookies(column='cookies', username=username)
         elif request['message'] == 'SAVE_COOKIES':
             username = request['data']['username']
-            cookies = repr(request['data']['cookies'])
+            cookies = request['data']['cookies']
             self.save_cookies(column='cookies', value=cookies, username=username)
-            response = f"SAVED {id} COOKIES"
+            response = f"SAVED {username} COOKIES"
+        elif request['message'] == 'GET_USERAGENT':
+            username = request['data']['username']
+            response = self.get_useragent(column='user_agent `useragent`', username=username)
+        elif request['message'] == 'SAVE_USERAGENT':
+            username = request['data']['username']
+            useragent = request['data']['useragent']
+            self.save_useragent(column='user_agent', value=useragent, username=username)
+            response = f"SAVED {username} USER AGENT"
         return response
