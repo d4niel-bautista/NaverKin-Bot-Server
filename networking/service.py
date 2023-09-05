@@ -34,6 +34,15 @@ class Service():
     def update_account(self, **kwargs):
         self.data_access.update_account(**kwargs)
     
+    def get_cookies(self, **kwargs):
+        cookies = self.data_access.fetch_session(**kwargs)
+        if cookies:
+            return cookies
+        return f"USER {kwargs['username']} HAS NO COOKIES SAVED!"
+
+    def save_cookies(self, **kwargs):
+        self.data_access.save_session(**kwargs)
+    
     def process_request(self, request):
         if request['message'] == 'GET_ACCOUNT':
             response = self.get_account()
@@ -57,4 +66,12 @@ class Service():
             respondent = request['data']['respondent']
             self.update_question(id=id, respondent=respondent)
             response = f"UPDATED {id} TO ANSWERED"
+        elif request['message'] == 'GET_COOKIES':
+            username = request['data']['username']
+            response = self.get_cookies(column='cookies', username=username)
+        elif request['message'] == 'SAVE_COOKIES':
+            username = request['data']['username']
+            cookies = repr(request['data']['cookies'])
+            self.save_cookies(column='cookies', value=cookies, username=username)
+            response = f"SAVED {id} COOKIES"
         return response

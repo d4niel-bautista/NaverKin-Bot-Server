@@ -48,3 +48,18 @@ class DataAccess():
             params = (str(status), respondent, id)
             self.db_cursor.execute(query, params)
             self.db_conn.commit()
+    
+    def fetch_session(self, column, username):
+        if self.db_cursor:
+            query = f"SELECT {column} FROM user_session WHERE username = %s LIMIT 1;"
+            params = (username,)
+            self.db_cursor.execute(query, params)
+            result = self.db_cursor.fetchone()
+            return result
+
+    def save_session(self, column, value, username):
+        if self.db_cursor and self.db_conn:
+            query = f"UPDATE user_session SET {column} = %s WHERE username = %s;"
+            params = (value, username)
+            self.db_cursor.execute(query, params)
+            self.db_conn.commit()
