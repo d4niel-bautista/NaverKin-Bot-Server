@@ -54,6 +54,12 @@ class Service():
     def save_useragent(self, **kwargs):
         self.data_access.save_session(**kwargs)
     
+    def get_configs(self, config_id):
+        configs = self.data_access.get_configs(config_id)
+        if configs:
+            return configs
+        return f"NO CONFIGS FOUND!"
+    
     def process_request(self, request):
         if request['message'] == 'GET_ACCOUNT':
             response = self.get_account()
@@ -93,4 +99,7 @@ class Service():
             useragent = request['data']['useragent']
             self.save_useragent(column='user_agent', value=useragent, username=username)
             response = f"SAVED {username} USER AGENT"
+        elif request['message'] == 'GET_CONFIGS':
+            config_id = request['data']['config_id']
+            response = self.get_configs(config_id)
         return response

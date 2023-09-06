@@ -9,7 +9,7 @@ class DataAccess():
 
     def get_account(self):
         if self.db_cursor:
-            query = "SELECT username, passwd `password`, account_status `status` FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
+            query = "SELECT username, passwd `password`, account_status `status`, account_role `role` FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
             self.db_cursor.execute(query)
             result = self.db_cursor.fetchone()
             return result
@@ -63,3 +63,11 @@ class DataAccess():
             params = (value, username)
             self.db_cursor.execute(query, params)
             self.db_conn.commit()
+    
+    def get_configs(self, config_id):
+        if self.db_cursor:
+            query = f"SELECT submit_delay, page_refresh, cooldown, prohibited_words, prescript, prompt, postscript, openai_api_key FROM crawler_configs WHERE config_id = %s LIMIT 1;"
+            params = (config_id,)
+            self.db_cursor.execute(query, params)
+            result = self.db_cursor.fetchone()
+            return result
