@@ -37,7 +37,8 @@ class Service():
     def get_cookies(self, **kwargs):
         cookies = self.data_access.fetch_session(**kwargs)
         if cookies:
-            return cookies
+            if cookies['cookies'] and cookies['cookies'] != '[]':
+                return cookies
         return f"USER {kwargs['username']} HAS NO COOKIES SAVED!"
 
     def save_cookies(self, **kwargs):
@@ -46,7 +47,8 @@ class Service():
     def get_useragent(self, **kwargs):
         useragent = self.data_access.fetch_session(**kwargs)
         if useragent:
-            return useragent
+            if useragent['useragent']:
+                return useragent
         return f"USER {kwargs['username']} HAS NO USER AGENT SAVED!"
     
     def save_useragent(self, **kwargs):
