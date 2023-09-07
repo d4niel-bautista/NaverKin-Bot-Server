@@ -102,4 +102,10 @@ class Service():
         elif request['message'] == 'GET_CONFIGS':
             config_id = request['data']['config_id']
             response = self.get_configs(config_id)
+        elif request['message'] == 'SAVE_QUESTION':
+            id = request['data']['question_id'] 
+            title = request['data']['question_title'] 
+            author = request['data']['author']
+            self.add_question(id=id, title=title, author=author)
+            response = f"SAVED QUESTION {id}"
         return response
