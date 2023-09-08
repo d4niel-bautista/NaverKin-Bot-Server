@@ -20,6 +20,12 @@ class Service():
             self.update_question(id=question['id'], respondent=username, status=0)
             return question
         return "NO AVAILABLE QUESTION!"
+
+    def select_question(self, username):
+        question = self.data_access.get_question(username=username)
+        if question:
+            return question
+        return "NO QUESTION WAITING FOR SELECTION!"
     
     def get_account(self):
         account = self.data_access.get_account()
@@ -66,6 +72,9 @@ class Service():
         elif request['message'] == 'GET_QUESTION':
             respondent = request['data']['username']
             response = self.get_question(respondent)
+        elif request['message'] == 'SELECT_QUESTION':
+            author = request['data']['username']
+            response = self.select_question(author)
         elif request['message'] == 'UPDATE_ACCOUNT':
             username = request['data']['username']
             status = request['data']['status']
@@ -81,7 +90,8 @@ class Service():
         elif request['message'] == 'UPDATE_QUESTION':
             id = request['data']['id']
             respondent = request['data']['respondent']
-            self.update_question(id=id, respondent=respondent)
+            status = request['data']['status']
+            self.update_question(id=id, respondent=respondent, status=status)
             response = f"UPDATED {id} TO ANSWERED"
         elif request['message'] == 'GET_COOKIES':
             username = request['data']['username']

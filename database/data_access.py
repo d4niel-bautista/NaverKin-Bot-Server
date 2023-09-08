@@ -28,10 +28,15 @@ class DataAccess():
             self.db_cursor.execute(query, params)
             self.db_conn.commit()
     
-    def get_question(self):
+    def get_question(self, username=''):
         if self.db_cursor:
-            query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE respondent_user = '' AND question_status = 0 LIMIT 1;"
-            self.db_cursor.execute(query)
+            if username:
+                query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE author = %s AND respondent_user != '' AND question_status = 0 LIMIT 1;"
+                params = (username,)
+                self.db_cursor.execute(query, params)
+            elif not username:
+                query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE respondent_user = '' AND question_status = 0 LIMIT 1;"
+                self.db_cursor.execute(query)
             result = self.db_cursor.fetchone()
             return result
     
