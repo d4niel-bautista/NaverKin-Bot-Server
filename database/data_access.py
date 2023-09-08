@@ -31,7 +31,7 @@ class DataAccess():
     def get_question(self, username=''):
         if self.db_cursor:
             if username:
-                query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE author = %s AND respondent_user != '' AND question_status = 0 LIMIT 1;"
+                query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent`, naverkin_user.account_url `respondent_url` FROM naverkin_question LEFT JOIN naverkin_user ON naverkin_question.respondent_user = naverkin_user.username WHERE author = %s AND respondent_user != '' AND question_status = 0 LIMIT 1;"
                 params = (username,)
                 self.db_cursor.execute(query, params)
             elif not username:
