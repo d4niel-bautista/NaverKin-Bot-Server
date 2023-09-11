@@ -90,8 +90,9 @@ class Service():
         elif request['message'] == 'UPDATE_QUESTION':
             id = request['data']['id']
             respondent = request['data']['respondent']
+            author = request['data']['author']
             status = request['data']['status']
-            self.update_question(id=id, respondent=respondent, status=status)
+            self.update_question(id=id, respondent=respondent, author=author, status=status)
             response = f"UPDATED {id} TO ANSWERED"
         elif request['message'] == 'GET_COOKIES':
             username = request['data']['username']

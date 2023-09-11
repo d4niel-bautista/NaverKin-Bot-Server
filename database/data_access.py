@@ -47,10 +47,14 @@ class DataAccess():
             self.db_cursor.execute(query, params)
             self.db_conn.commit()
         
-    def update_question(self, id, respondent, status=1):
+    def update_question(self, id, respondent='', author='', status=1):
         if self.db_cursor and self.db_conn:
-            query = "UPDATE naverkin_question SET question_status = %s, respondent_user = %s WHERE question_id = %s;"
-            params = (str(status), respondent, id)
+            if respondent == '' and author != '':
+                query = "UPDATE naverkin_question SET question_status = %s WHERE question_id = %s AND author = %s;"
+                params = (str(status), id, author)
+            elif author == '' and respondent != '':
+                query = "UPDATE naverkin_question SET question_status = %s, respondent_user = %s WHERE question_id = %s;"
+                params = (str(status), respondent, id)
             self.db_cursor.execute(query, params)
             self.db_conn.commit()
     
