@@ -93,7 +93,10 @@ class Service():
             author = request['data']['author']
             status = request['data']['status']
             self.update_question(id=id, respondent=respondent, author=author, status=status)
-            response = f"UPDATED {id} TO ANSWERED"
+            if status == 1:
+                response = f"UPDATED {id} TO ANSWERED"
+            elif status == 2:
+                response = f"{id} HAS ANSWER SELECTED"
         elif request['message'] == 'GET_COOKIES':
             username = request['data']['username']
             response = self.get_cookies(column='cookies', username=username)
