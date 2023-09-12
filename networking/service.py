@@ -14,9 +14,11 @@ class Service():
     def add_account(self, **kwargs):
         self.data_access.add_account(**kwargs)
     
-    def get_question(self, username):
-        question = self.data_access.get_question()
+    def get_question(self, username, levelup_id):
+        question = self.data_access.get_question(username, levelup_id)
         if question:
+            if levelup_id:
+                return question
             self.update_question(id=question['id'], respondent=username, status=0)
             return question
         return "NO AVAILABLE QUESTION!"
@@ -25,7 +27,7 @@ class Service():
         question = self.data_access.get_question(username=username)
         if question:
             return question
-        return "NO QUESTION WAITING FOR SELECTION!"
+        return "NO QUESTION AVAILABLE FOR ANSWER SELECTION!"
     
     def get_account(self):
         account = self.data_access.get_account()
@@ -71,7 +73,8 @@ class Service():
             response = self.get_account()
         elif request['message'] == 'GET_QUESTION':
             respondent = request['data']['username']
-            response = self.get_question(respondent)
+            levelup_id = request['data']['levelup_id']
+            response = self.get_question(respondent, levelup_id)
         elif request['message'] == 'SELECT_QUESTION':
             author = request['data']['username']
             response = self.select_question(author)

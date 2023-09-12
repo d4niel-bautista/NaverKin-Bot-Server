@@ -4,7 +4,7 @@ class DataAccess():
     def get_account(self):
         db_conn, db_cursor = connect_database()
         if db_cursor:
-            query = "SELECT username, passwd `password`, account_status `status`, account_role `role` FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
+            query = "SELECT username, passwd `password`, account_status `status`, levelup_id FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
             db_cursor.execute(query)
             result = db_cursor.fetchone()
             db_cursor.close()
@@ -31,16 +31,23 @@ class DataAccess():
             db_cursor.close()
             db_conn.close()
     
-    def get_question(self, username=''):
+    def get_question(self, username='', levelup_id=''):
         db_conn, db_cursor = connect_database()
         if db_cursor:
-            if username:
-                query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent`, naverkin_user.account_url `respondent_url` FROM naverkin_question LEFT JOIN naverkin_user ON naverkin_question.respondent_user = naverkin_user.username WHERE author = %s AND respondent_user != '' AND question_status = 0 LIMIT 1;"
-                params = (username,)
+            username = username.split('::')
+            if len(username) == 2 and username[-1] == 'author':
+                query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent`, naverkin_user.account_url `respondent_url` FROM naverkin_question LEFT JOIN naverkin_user ON naverkin_question.respondent_user = naverkin_user.username WHERE author = %s AND respondent_user != '' AND question_status = 2 LIMIT 1;"
+                params = (username[0],)
                 db_cursor.execute(query, params)
-            elif not username:
-                query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE respondent_user = '' AND question_status = 0 LIMIT 1;"
-                db_cursor.execute(query)
+            elif len(username) == 1:
+                if levelup_id:
+                    query = "SELECT question_id `id` FROM naverkin_question WHERE respondent_user != '' AND respondent_user != %s AND author != %s AND question_status = 1 LIMIT 1;"
+                    params = (username[0], username[0])
+                    db_cursor.execute(query, params)
+                else:
+                    query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE respondent_user = '' AND author != %s AND question_status = 0 LIMIT 1;"
+                    params = (username[0],)
+                    db_cursor.execute(query, params)
             result = db_cursor.fetchone()
             db_cursor.close()
             db_conn.close()
