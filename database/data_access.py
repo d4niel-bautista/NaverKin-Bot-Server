@@ -119,3 +119,13 @@ class DataAccess():
             db_cursor.close()
             db_conn.close()
             return result
+    
+    def update_account_interactions(self, target, username):
+        db_conn, db_cursor = connect_database()
+        if db_cursor and db_conn:
+            query = "UPDATE account_interactions SET interacted_accounts = %s WHERE username = %s;"
+            params = (username, target)
+            db_cursor.execute(query, params)
+            db_conn.commit()
+            db_cursor.close()
+            db_conn.close()

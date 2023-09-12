@@ -48,6 +48,19 @@ class Service():
     def update_account(self, **kwargs):
         self.data_access.update_account(**kwargs)
     
+    def update_account_interactions(self, target, username):
+        interacted_accounts = self.get_account_interactions(username=target)
+        if type(interacted_accounts) == dict:
+            if interacted_accounts['interacted_accounts']:
+                interacted_accounts = interacted_accounts['interacted_accounts'].split(',')
+                interacted_accounts.append(username)
+                interacted_accounts = ",".join(interacted_accounts)
+                self.data_access.update_account_interactions(target, interacted_accounts)
+            else:
+                interacted_accounts = []
+                interacted_accounts.append(username)
+                self.data_access.update_account_interactions(target, interacted_accounts)
+    
     def get_cookies(self, **kwargs):
         cookies = self.data_access.fetch_session(**kwargs)
         if cookies:
@@ -134,4 +147,10 @@ class Service():
         elif request['message'] == "GET_ACCOUNT_INTERACTIONS":
             username = request['data']['username']
             response = self.get_account_interactions(username)
+        elif request['message'] == "ADD_INTERACTED_ACCOUNT":
+            target = request['data']['target']
+            username = request['data']['username']
+            self.update_account_interactions(target=target, username=username)
+            self.update_account_interactions(target=username, username=target)
+            response = f"ADDED {username} TO INTERACTED ACCOUNTS OF {target}"
         return response
