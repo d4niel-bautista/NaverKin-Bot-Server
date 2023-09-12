@@ -36,6 +36,12 @@ class Service():
             return account
         return "NO AVAILABLE ACCOUNT!"
     
+    def get_account_interactions(self, username):
+        interactions = self.data_access.get_account_interactions(username)
+        if interactions:
+            return interactions
+        return "NO ACCOUNT INTERACTIONS!"
+    
     def update_question(self, **kwargs):
         self.data_access.update_question(**kwargs)
 
@@ -125,4 +131,7 @@ class Service():
             author = request['data']['author']
             self.add_question(id=id, title=title, author=author)
             response = f"SAVED QUESTION {id}"
+        elif request['message'] == "GET_ACCOUNT_INTERACTIONS":
+            username = request['data']['username']
+            response = self.get_account_interactions(username)
         return response

@@ -41,11 +41,11 @@ class DataAccess():
                 db_cursor.execute(query, params)
             elif len(username) == 1:
                 if levelup_id:
-                    query = "SELECT question_id `id` FROM naverkin_question WHERE respondent_user != '' AND respondent_user != %s AND author != %s AND question_status = 1 LIMIT 1;"
+                    query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent`, author FROM naverkin_question WHERE respondent_user != '' AND respondent_user != %s AND author != %s AND question_status = 1 LIMIT 1;"
                     params = (username[0], username[0])
                     db_cursor.execute(query, params)
                 else:
-                    query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent` FROM naverkin_question WHERE respondent_user = '' AND author != %s AND question_status = 0 LIMIT 1;"
+                    query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent`, author FROM naverkin_question WHERE respondent_user = '' AND author != %s AND question_status = 0 LIMIT 1;"
                     params = (username[0],)
                     db_cursor.execute(query, params)
             result = db_cursor.fetchone()
@@ -101,8 +101,19 @@ class DataAccess():
     def get_configs(self, config_id):
         db_conn, db_cursor = connect_database()
         if db_cursor:
-            query = f"SELECT submit_delay, page_refresh, cooldown, prohibited_words, prescript, prompt, postscript, openai_api_key FROM crawler_configs WHERE config_id = %s LIMIT 1;"
+            query = f"SELECT submit_delay, page_refresh, cooldown, prohibited_words, prescript, prompt, postscript, max_interactions, openai_api_key FROM crawler_configs WHERE config_id = %s LIMIT 1;"
             params = (config_id,)
+            db_cursor.execute(query, params)
+            result = db_cursor.fetchone()
+            db_cursor.close()
+            db_conn.close()
+            return result
+    
+    def get_account_interactions(self, username):
+        db_conn, db_cursor = connect_database()
+        if db_cursor:
+            query = "SELECT interacted_accounts FROM account_interactions WHERE username = %s LIMIT 1;"
+            params = (username,)
             db_cursor.execute(query, params)
             result = db_cursor.fetchone()
             db_cursor.close()
