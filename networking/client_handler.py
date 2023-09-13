@@ -1,6 +1,5 @@
 import socket
 import os
-import networking.messages as msg
 import json
 from utils import get_logger
 from dotenv import load_dotenv
