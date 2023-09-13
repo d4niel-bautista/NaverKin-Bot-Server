@@ -1,11 +1,16 @@
 from database.connect_database import connect_database
 
 class DataAccess():
-    def get_account(self):
+    def get_account(self, username=''):
         db_conn, db_cursor = connect_database()
         if db_cursor:
-            query = "SELECT username, passwd `password`, account_status `status`, levelup_id FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
-            db_cursor.execute(query)
+            if username:
+                query = "SELECT username, passwd `password`, account_status `status`, levelup_id FROM naverkin_user WHERE account_status = 0 AND username != %s LIMIT 1;"
+                params = (username,)
+                db_cursor.execute(query, params)
+            else:
+                query = "SELECT username, passwd `password`, account_status `status`, levelup_id FROM naverkin_user WHERE account_status = 0 LIMIT 1;"
+                db_cursor.execute(query)
             result = db_cursor.fetchone()
             db_cursor.close()
             db_conn.close()

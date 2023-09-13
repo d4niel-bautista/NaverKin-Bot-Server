@@ -29,8 +29,8 @@ class Service():
             return question
         return "NO QUESTION AVAILABLE FOR ANSWER SELECTION!"
     
-    def get_account(self):
-        account = self.data_access.get_account()
+    def get_account(self, username=''):
+        account = self.data_access.get_account(username)
         if account:
             self.update_account(username=account['username'], status=1)
             return account
@@ -89,7 +89,8 @@ class Service():
     
     def process_request(self, request):
         if request['message'] == 'GET_ACCOUNT':
-            response = self.get_account()
+            username = request['data']['username']
+            response = self.get_account(username)
         elif request['message'] == 'GET_QUESTION':
             respondent = request['data']['username']
             levelup_id = request['data']['levelup_id']
