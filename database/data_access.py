@@ -16,15 +16,17 @@ class DataAccess():
             db_conn.close()
             return result
 
-    def add_account(self, username, password, account_name, date_of_birth, gender, mobile_no, recovery_email='', account_status=0):
+    def add_account(self, username, password, account_name='', date_of_birth='2023-09-04', gender='', mobile_no='', recovery_email='', levelup_id=0, account_url='', account_status=0):
         db_conn, db_cursor = connect_database()
         if db_cursor and db_conn:
-            query = "INSERT INTO naverkin_user(username, passwd, recovery_email, account_name, date_of_birth, gender, mobile_no, account_status) VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
-            params = (username, password, recovery_email, account_name, date_of_birth, gender, mobile_no, str(account_status))
+            query = "INSERT INTO naverkin_user(username, passwd, recovery_email, account_name, date_of_birth, gender, mobile_no, levelup_id, account_url, account_status) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            params = (username, password, recovery_email, account_name, date_of_birth, gender, mobile_no, levelup_id, account_url, account_status)
             db_cursor.execute(query, params)
             db_conn.commit()
             db_cursor.close()
             db_conn.close()
+        self.add_account_interactions(username=username)
+        self.add_user_session(username=username)
     
     def update_account(self, username, status):
         db_conn, db_cursor = connect_database()
@@ -103,6 +105,16 @@ class DataAccess():
             db_cursor.close()
             db_conn.close()
     
+    def add_user_session(self, username, cookies='', useragent=''):
+        db_conn, db_cursor = connect_database()
+        if db_cursor and db_conn:
+            query = "INSERT INTO user_session(username, cookies, user_agent) VALUES (%s, %s, %s);"
+            params = (username, cookies, useragent)
+            db_cursor.execute(query, params)
+            db_conn.commit()
+            db_cursor.close()
+            db_conn.close()
+    
     def get_configs(self, config_id):
         db_conn, db_cursor = connect_database()
         if db_cursor:
@@ -113,6 +125,16 @@ class DataAccess():
             db_cursor.close()
             db_conn.close()
             return result
+    
+    def add_account_interactions(self, username, interactions=''):
+        db_conn, db_cursor = connect_database()
+        if db_cursor and db_conn:
+            query = "INSERT INTO account_interactions(username, interacted_accounts) VALUES (%s, %s);"
+            params = (username, interactions)
+            db_cursor.execute(query, params)
+            db_conn.commit()
+            db_cursor.close()
+            db_conn.close()
     
     def get_account_interactions(self, username):
         db_conn, db_cursor = connect_database()
