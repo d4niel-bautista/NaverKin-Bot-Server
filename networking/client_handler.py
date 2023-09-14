@@ -10,12 +10,6 @@ HEADER_LEN = int(os.getenv('HEADER_LEN'))
 logger = get_logger('server', 'logs/server.log')
 
 class ClientHandler():
-    addr = None
-    conn = None
-    server = None
-    service = None
-    running = False
-
     def __init__(self, conn: socket.socket, addr, server, service):
         self.conn = conn
         self.addr = addr
@@ -23,6 +17,7 @@ class ClientHandler():
         self.server = server
         self.service = service
         logger.info(f'[CLIENT::{self.addr[0]}] has connected.')
+        self.client_username = ''
 
     def start(self):
         while self.running:
@@ -30,11 +25,9 @@ class ClientHandler():
                 msg = self.receive()
                 if msg:
                     self.process_request(msg)
-            except ConnectionError as e:
-                logger.error(e)
-                self.close()
             except:
                 logger.exception('\n')
+                self.close()
     
     def send(self, message):
         self.conn.send(json.dumps(message).encode(CODEC))
@@ -48,12 +41,17 @@ class ClientHandler():
         if request['message'] == 'DISCONNECT':
             self.send('OK')
             self.close()
+        elif request['message'] == 'GET_ACCOUNT':
+            response = self.service.process_request(request)
+            self.client_username = response['username']
+            self.send(response)
         else:
             response = self.service.process_request(request)
             self.send(response)
 
     def close(self):
         self.running = False
+        self.service.update_account(username=self.client_username, status=0)
         self.conn.shutdown(socket.SHUT_RDWR)
         self.conn.close()
         logger.info(f'[CLIENT::{self.addr[0]}] has disconnected.')

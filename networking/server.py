@@ -35,7 +35,7 @@ class Server():
                 logger.exception('\n')
 
     def handle_client(self, conn, addr):
-        print(f"{conn} HAS CONNECTED")
+        print(f"{addr[0]} HAS CONNECTED")
         data_access = DataAccess()
         service = Service(data_access)
         client_handler = ClientHandler(conn, addr, self, service)
@@ -46,5 +46,6 @@ class Server():
     def remove_client(self, client: ClientHandler):
         for handler in self.client_handlers:
             if handler.addr == client.addr:
+                print(f"{client.addr[0]} HAS DISCONNECTED")
                 self.client_handlers.remove(client)
                 
