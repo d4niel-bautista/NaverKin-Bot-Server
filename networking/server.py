@@ -10,7 +10,7 @@ load_dotenv()
 
 PORT = int(os.getenv('SERVER_PORT'))
 CODEC = os.getenv('CODEC')
-SERVER_IP = socket.gethostbyname(socket.gethostname())
+SERVER_IP = input("Enter Server IP Address: ")
 logger = get_logger('server', 'logs/server.log')
 
 class Server():
