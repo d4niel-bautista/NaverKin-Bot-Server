@@ -8,6 +8,9 @@ class Service():
     def __init__(self, data_access: DataAccess):
         self.data_access = data_access
     
+    def set_clienthandler(self, clienthandler):
+        self.clienthandler = clienthandler
+    
     def add_question(self, **kwargs):
         self.data_access.add_question(**kwargs)
     
