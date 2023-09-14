@@ -4,13 +4,13 @@ import os
 from .client_handler import ClientHandler
 from .service import Service
 from database.data_access import DataAccess
-from utils import get_logger
+from utils import get_logger, fetch_server_ip
 from dotenv import load_dotenv
 load_dotenv()
 
 PORT = int(os.getenv('SERVER_PORT'))
 CODEC = os.getenv('CODEC')
-SERVER_IP = input("Enter Server IP Address: ")
+SERVER_IP = fetch_server_ip()
 logger = get_logger('server', 'logs/server.log')
 
 class Server():
