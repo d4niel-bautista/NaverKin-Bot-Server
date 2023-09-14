@@ -48,4 +48,16 @@ class Server():
             if handler.addr == client.addr:
                 print(f"{client.addr[0]} HAS DISCONNECTED")
                 self.client_handlers.remove(client)
-                
+    
+    def broadcast_message(self, message, exclude=''):
+        for handler in self.client_handlers:
+            if exclude:
+                if handler.client_username == exclude:
+                    continue
+            handler.send(message)
+    
+    def send_to_target(self, message, target):
+        for handler in self.client_handlers:
+            if handler.client_username == target:
+                handler.send(message)
+                break 

@@ -18,6 +18,7 @@ class ClientHandler():
         self.service = service
         logger.info(f'[CLIENT::{self.addr[0]}] has connected.')
         self.client_username = ''
+        self.service.set_clienthandler(self)
 
     def start(self):
         while self.running:
@@ -31,6 +32,12 @@ class ClientHandler():
     
     def send(self, message):
         self.conn.send(json.dumps(message).encode(CODEC))
+    
+    def broadcast_message(self, message, exclude=''):
+        self.server.broadcast_message(message, exclude)
+
+    def send_to_target(self, message, target):
+        self.server.send_to_target(message, target)
 
     def receive(self):
         message = self.conn.recv(HEADER_LEN).decode(CODEC)
@@ -56,4 +63,3 @@ class ClientHandler():
         self.conn.close()
         logger.info(f'[CLIENT::{self.addr[0]}] has disconnected.')
         self.server.remove_client(self)
-        
