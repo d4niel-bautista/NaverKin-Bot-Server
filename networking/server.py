@@ -23,6 +23,7 @@ class Server():
         self.running = True
 
     def start(self):
+        print('SERVER HAS STARTED')
         logger.info(f'[SERVER::{SERVER_IP}] has started.')
         self.server.listen()
         logger.info(f'[SERVER::{SERVER_IP}] is listening.')
@@ -34,6 +35,7 @@ class Server():
                 logger.exception('\n')
 
     def handle_client(self, conn, addr):
+        print(f"{conn} HAS CONNECTED")
         data_access = DataAccess()
         service = Service(data_access)
         client_handler = ClientHandler(conn, addr, self, service)
