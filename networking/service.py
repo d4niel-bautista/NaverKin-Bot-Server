@@ -72,8 +72,6 @@ class Service():
                 interacted_accounts = ",".join(interacted_accounts)
                 self.data_access.update_account_interactions(target, interacted_accounts)
             else:
-                interacted_accounts = []
-                interacted_accounts.append(username)
                 self.data_access.update_account_interactions(target, interacted_accounts)
     
     def get_cookies(self, **kwargs):
@@ -132,8 +130,10 @@ class Service():
             status = request['data']['status']
             self.update_question(id=id, respondent=respondent, author=author, status=status)
             if status == 1:
-                response = f"UPDATED {id} TO ANSWERED"
+                response = f"UPDATED {id} TO ANSWERED BY RESPONDENT"
             elif status == 2:
+                response = f"UPDATED {id} TO ANSWERED BY LEVELUP ID"
+            elif status == 3:
                 response = f"{id} HAS ANSWER SELECTED"
         elif request['message'] == 'GET_COOKIES':
             username = request['data']['username']
