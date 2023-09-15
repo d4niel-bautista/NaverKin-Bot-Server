@@ -7,6 +7,8 @@ from database.data_access import DataAccess
 from utils import get_logger, fetch_server_ip
 from dotenv import load_dotenv
 load_dotenv()
+import networking.push_messages as push
+import time
 
 PORT = int(os.getenv('SERVER_PORT'))
 CODEC = os.getenv('CODEC')
@@ -61,3 +63,6 @@ class Server():
             if handler.client_username == target:
                 handler.send(message)
                 break 
+    
+    def stop_all_clients(self):
+        self.broadcast_message(push.STOP)
