@@ -50,7 +50,8 @@ class ClientHandler():
             self.close()
         elif request['message'] == 'GET_ACCOUNT':
             response = self.service.process_request(request)
-            self.client_username = response['username']
+            if type(response) is dict:
+                self.client_username = response['username']
             self.send(response)
         else:
             response = self.service.process_request(request)

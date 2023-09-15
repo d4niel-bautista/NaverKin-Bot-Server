@@ -60,6 +60,17 @@ class DataAccess():
             db_conn.close()
             return result
     
+    def get_question_for_selection_count(self, author):
+        db_conn, db_cursor = connect_database()
+        if db_cursor:
+            query = 'SELECT COUNT(question_id) `count` FROM naverkin_question WHERE author = %s AND question_status < 3;'
+            params = (author,)
+            db_cursor.execute(query, params)
+            result = db_cursor.fetchone()
+            db_cursor.close()
+            db_conn.close()
+            return result
+    
     def add_question(self, id, title, author, status=0, respondent=''):
         db_conn, db_cursor = connect_database()
         if db_cursor and db_conn:

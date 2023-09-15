@@ -25,6 +25,12 @@ class Service():
             self.update_question(id=question['id'], respondent=username, status=0)
             return question
         return "NO AVAILABLE QUESTION!"
+    
+    def get_question_for_selection_count(self, author):
+        count = self.data_access.get_question_for_selection_count(author=author)
+        if count:
+            return count
+        return "NO RECORDED QUESTION"
 
     def select_question(self, username):
         question = self.data_access.get_question(username=username)
@@ -157,4 +163,7 @@ class Service():
             self.update_account_interactions(target=target, username=username)
             self.update_account_interactions(target=username, username=target)
             response = f"ADDED {username} TO INTERACTED ACCOUNTS OF {target}"
+        elif request['message'] == 'GET_QUESTION_FOR_SELECTION_COUNT':
+            author = request['data']['author']
+            response = self.get_question_for_selection_count(author=author)
         return response
