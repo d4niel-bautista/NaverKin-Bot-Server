@@ -26,6 +26,12 @@ class Service():
             return question
         return "NO AVAILABLE QUESTION!"
     
+    def get_unanswered_question(self, respondent):
+        unanswered_question = self.data_access.get_unanswered_question(respondent)
+        if unanswered_question:
+            return unanswered_question
+        return "NO UNANSWERED QUESTION!"
+    
     def get_question_for_selection_count(self, author):
         count = self.data_access.get_question_for_selection_count(author=author)
         if count:
@@ -166,4 +172,7 @@ class Service():
         elif request['message'] == 'GET_QUESTION_FOR_SELECTION_COUNT':
             author = request['data']['author']
             response = self.get_question_for_selection_count(author=author)
+        elif request['message'] == 'GET_UNANSWERED_QUESTION':
+            respondent = request['data']['respondent']
+            response = self.get_unanswered_question(respondent)
         return response

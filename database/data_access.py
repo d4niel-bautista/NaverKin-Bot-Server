@@ -60,6 +60,17 @@ class DataAccess():
             db_conn.close()
             return result
     
+    def get_unanswered_question(self, respondent):
+        db_conn, db_cursor = connect_database()
+        if db_cursor:
+            query = "SELECT question_id `id`, question_status `status`, respondent_user `respondent`, author FROM naverkin_question WHERE respondent_user = %s AND author != %s AND question_status = 0 LIMIT 1;"
+            params = (respondent, respondent)
+            db_cursor.execute(query, params)
+            result = db_cursor.fetchone()
+            db_cursor.close()
+            db_conn.close()
+            return result
+    
     def get_question_for_selection_count(self, author):
         db_conn, db_cursor = connect_database()
         if db_cursor:
