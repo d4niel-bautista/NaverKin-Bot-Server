@@ -23,6 +23,7 @@ class Server():
 
     def __init__(self):
         self.running = True
+        self.data_access = DataAccess()
 
     def start(self):
         print('SERVER HAS STARTED')
@@ -38,8 +39,7 @@ class Server():
 
     def handle_client(self, conn, addr):
         print(f"{addr[0]} HAS CONNECTED")
-        data_access = DataAccess()
-        service = Service(data_access)
+        service = Service(self.data_access)
         client_handler = ClientHandler(conn, addr, self, service)
         self.client_handlers.append(client_handler)
         client_thread = threading.Thread(target=client_handler.start)
