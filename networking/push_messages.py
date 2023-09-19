@@ -1,1 +1,0 @@
-STOP = {'notif': 'STOP'}
