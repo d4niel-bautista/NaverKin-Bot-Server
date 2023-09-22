@@ -1,13 +1,16 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from http_request_handler import HTTPRequestHandler
+from websocket_connection_manager import WebsocketConnectionManager
         
 class Server:
     def __init__(self):
         self.app = FastAPI()
         self.http_req_handler = HTTPRequestHandler()
+        self.websock_conn_manager = WebsocketConnectionManager()
 
         self.app.include_router(self.http_req_handler.router)
+        self.app.include_router(self.websock_conn_manager.router)
         self.app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
