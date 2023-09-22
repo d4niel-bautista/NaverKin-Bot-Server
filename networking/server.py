@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from http_request_handler import HTTPRequestHandler
-from websocket_connection_manager import WebsocketConnectionManager
+from http_.http_request_handler import HTTPRequestHandler
+from websocket_.websocket_connection_manager import WebsocketConnectionManager
         
 class Server:
     def __init__(self):

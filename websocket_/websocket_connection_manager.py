@@ -1,8 +1,10 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from datetime import datetime
+from websocket_.websocket_service import WebsocketService
 
 class WebsocketConnectionManager():
     def __init__(self) -> None:
+        self.service = WebsocketService()
         self.router = APIRouter()
         self.clients = {}
 
@@ -18,7 +20,8 @@ class WebsocketConnectionManager():
                 while True:
                     data = await websocket.receive_text()
                     
-                    await self.broadcast(data, exclude=client_id)
+                    response = await self.service.process_message(data, client_id)
+                    await self.send(response)
             except WebSocketDisconnect:
                 await self.client_state_update(client_id, 0)
                 del self.clients[client_id]
@@ -30,16 +33,18 @@ class WebsocketConnectionManager():
             print(f"[{current_date_time}] {client_id} has connected")
         elif not state:
             print(f"[{current_date_time}] {client_id} has disconnected")
+    
+    async def send(self, message):
+        if message["recipient"] == "all":
+            await self.broadcast(message['message'], message['exclude'])
+        else:
+            await self.send_to_client(message["message"], message["recipient"])
 
     async def broadcast(self, message, exclude: str=""):
         for client in self.clients:
             if client == exclude:
                 continue
-            await self.clients[client].send_text("FROM " + exclude + ": " + message)
+            await self.send_to_client(message, client)
     
     async def send_to_client(self, message, target: str):
-        for client in self.clients:
-            if client != target:
-                continue
-            await self.clients[client].send_text(message)
-            break
+        await self.clients[target].send_text(message)
