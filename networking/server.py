@@ -4,6 +4,9 @@ from http_.http_request_handler import HTTPRequestHandler
 from websocket_ import WebsocketService, WebsocketConnectionManager
 from networking.queues import QueuesContainer
 import asyncio
+from database import models, database
+
+models.Base.metadata.create_all(bind=database.engine)
 
 class Server:
     def __init__(self):
