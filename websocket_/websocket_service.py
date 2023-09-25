@@ -1,14 +1,20 @@
-import json
-
 class WebsocketService():
     def __init__(self, queues) -> None:
-        self.queues = queues
+        self.ws_conn_outbound = queues.ws_conn_outbound
+        self.ws_service_inbound = queues.ws_service_inbound
+        self.ws_service_outbound = queues.ws_service_outbound
 
-    async def process_message(self, message, client_id):
-        return {"recipient": "all", "exclude": client_id, "message": "[ws service] FROM " + client_id + ": " + message}
+    async def process_message(self, message):
+        client_id = message['client_id']
+        data = message['data']
+        await self.ws_conn_outbound.put({"recipient": "all", "exclude": client_id, "message": "[ws service] FROM " + client_id + ": " + data})
     
-    async def get_from_queue(self):
+    async def get_from_ws_service_outbound(self):
         while True:
-            job = await self.queues.http_to_websocket.get()
-            await self.queues.websocket_outbound.put(job)
-            
+            outbound_msg = await self.ws_service_outbound.get()
+            await self.ws_conn_outbound.put(outbound_msg)
+    
+    async def get_from_ws_service_inbound(self):
+        while True:
+            inbound_msg = await self.ws_service_inbound.get()
+            await self.process_message(inbound_msg)

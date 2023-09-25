@@ -4,12 +4,12 @@ from websocket_.websocket_service import WebsocketService
 
 class WebsocketConnectionManager():
     def __init__(self, queues) -> None:
-        self.queues = queues
-        self.service = WebsocketService(queues)
+        self.ws_conn_outbound = queues.ws_conn_outbound
+        self.ws_service_inbound = queues.ws_service_inbound
         self.router = APIRouter()
         self.clients = {}
 
-        @self.router.websocket_route('/{client_id}')
+        @self.router.websocket('/{client_id}')
         async def handle_connection(websocket: WebSocket, client_id: str):
             await websocket.accept()
             
@@ -21,17 +21,16 @@ class WebsocketConnectionManager():
                 while True:
                     data = await websocket.receive_text()
                     
-                    response = await self.service.process_message(data, client_id)
-                    await self.send(response)
+                    await self.ws_service_inbound.put({"client_id": client_id, "data": data})
             except WebSocketDisconnect:
                 await self.client_state_update(client_id, 0)
                 del self.clients[client_id]
                 print(self.clients)
         
-    async def get_from_outbound_queue(self):
+    async def get_from_ws_conn_outbound(self):
         while True:
-            job = await self.queues.websocket_outbound.get()
-            await self.broadcast(job)
+            job = await self.ws_conn_outbound.get()
+            await self.send(job)
     
     async def client_state_update(self, client_id: str, state: int):
         current_date_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
