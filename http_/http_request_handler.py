@@ -2,8 +2,8 @@ from fastapi import APIRouter, Request
 from http_.http_service import HTTPService
 
 class HTTPRequestHandler():
-    def __init__(self) -> None:
-        self.service = HTTPService()
+    def __init__(self, queues) -> None:
+        self.service = HTTPService(queues)
         self.router = APIRouter()
         
         @self.router.get("/{path:path}")

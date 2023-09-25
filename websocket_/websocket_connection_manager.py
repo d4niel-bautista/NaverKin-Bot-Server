@@ -3,12 +3,13 @@ from datetime import datetime
 from websocket_.websocket_service import WebsocketService
 
 class WebsocketConnectionManager():
-    def __init__(self) -> None:
-        self.service = WebsocketService()
+    def __init__(self, queues) -> None:
+        self.queues = queues
+        self.service = WebsocketService(queues)
         self.router = APIRouter()
         self.clients = {}
 
-        @self.router.websocket('/{client_id}')
+        @self.router.websocket_route('/{client_id}')
         async def handle_connection(websocket: WebSocket, client_id: str):
             await websocket.accept()
             
@@ -26,6 +27,11 @@ class WebsocketConnectionManager():
                 await self.client_state_update(client_id, 0)
                 del self.clients[client_id]
                 print(self.clients)
+        
+    async def get_from_outbound_queue(self):
+        while True:
+            job = await self.queues.websocket_outbound.get()
+            await self.broadcast(job)
     
     async def client_state_update(self, client_id: str, state: int):
         current_date_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -47,4 +53,4 @@ class WebsocketConnectionManager():
             await self.send_to_client(message, client)
     
     async def send_to_client(self, message, target: str):
-        await self.clients[target].send_text(message)
+        await self.clients[target].send_json(message)
