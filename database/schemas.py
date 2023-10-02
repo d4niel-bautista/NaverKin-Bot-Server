@@ -1,18 +1,24 @@
 from pydantic import BaseModel
 from datetime import date
 
-class Account(BaseModel):
+class NaverAccountBase(BaseModel):
     username: str
     password: str
+    levelup_id: int
+    account_url: str
+    status: int
+
+class NaverAccountCreate(NaverAccountBase):
     recovery_email: str
     name: str
     date_of_birth: date
     gender: str
     mobile_no: str
-    levelup_id: int
-    account_url: str
-    status: int
 
+    class Config:
+        from_attributes = True
+
+class NaverAccount(NaverAccountBase):
     class Config:
         from_attributes = True
 
@@ -50,7 +56,7 @@ class QuestionPost(BaseModel):
     title: str
     status: int
     author: str
-    respondent: Account
+    respondent: NaverAccount
 
     class Config:
         from_attributes = True

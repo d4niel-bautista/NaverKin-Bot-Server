@@ -30,7 +30,7 @@ class AccountInteraction(Base):
     __tablename__ = "account_interactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(30), unique=True, index=True)
+    username = Column(String(30), ForeignKey("naver_accounts.username"), unique=True, index=True, default="")
     interactions = Column(Text, index=True)
 
 class BotConfigs(Base):
