@@ -55,7 +55,9 @@ class NaverKinQuestionPost(Base):
     title = Column(Text, index=True, default="")
     status = Column(Integer, index=True, default=0)
     author = Column(String(30), index=True, default="")
-    respondent = Column(String(30), ForeignKey("naver_accounts.username"), index=True, default="")
+    respondent_id = Column(String(30), ForeignKey("naver_accounts.username"), index=True, default="")
+
+    respondent = relationship("NaverAccount", uselist=False)
 
 class NaverKinAnswerResponse(Base):
     __tablename__ = "naverkin_answer_responses"

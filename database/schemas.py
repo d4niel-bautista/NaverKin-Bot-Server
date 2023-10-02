@@ -74,3 +74,8 @@ class Admin(AdminBase):
 
     class Config:
         from_attributes = True
+
+class QuestionAnswerForm(BaseModel):
+    question: str
+    answer_1: str
+    answer_2: str

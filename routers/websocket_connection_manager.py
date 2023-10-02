@@ -1,12 +1,11 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from datetime import datetime
-from websocket_.websocket_service import WebsocketService
+import services.websocket_services as ws_services
 
 class WebsocketConnectionManager():
-    def __init__(self, queues) -> None:
-        self.ws_conn_outbound = queues.ws_conn_outbound
-        self.ws_service_inbound = queues.ws_service_inbound
+    def __init__(self, queue) -> None:
         self.router = APIRouter()
+        self.ws_conn_outbound = queue
         self.clients = {}
 
         @self.router.websocket('/{client_id}')
@@ -19,13 +18,11 @@ class WebsocketConnectionManager():
 
             try:
                 while True:
-                    data = await websocket.receive_text()
-                    
-                    await self.ws_service_inbound.put({"client_id": client_id, "data": data})
+                    data = await websocket.receive_json()
+                    await ws_services.process_incoming_message(client_id, data)
             except WebSocketDisconnect:
                 await self.client_state_update(client_id, 0)
                 del self.clients[client_id]
-                print(self.clients)
         
     async def get_from_ws_conn_outbound(self):
         while True:
@@ -41,15 +38,15 @@ class WebsocketConnectionManager():
     
     async def send(self, message):
         if message["recipient"] == "all":
-            await self.broadcast(message['message'], message['exclude'])
+            await self.broadcast(exclude=message['exclude'], message=message['message'])
         else:
-            await self.send_to_client(message["message"], message["recipient"])
+            await self.send_to_client(recipient=message["recipient"], message=message["message"])
 
     async def broadcast(self, message, exclude: str=""):
         for client in self.clients:
-            if client == exclude:
+            if client in exclude:
                 continue
             await self.send_to_client(message, client)
     
-    async def send_to_client(self, message, target: str):
-        await self.clients[target].send_json(message)
+    async def send_to_client(self, message, recipient: str):
+        await self.clients[recipient].send_json(message)
