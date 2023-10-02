@@ -37,8 +37,16 @@ class AccountInteraction(BaseModel):
     class Config:
         from_attributes = True
 
-class BotConfigs(BaseModel):
+class BotConfigsBase(BaseModel):
     submit_delay: int
+
+class BotConfigs(BotConfigsBase):
+    id: int
+    
+    class Config:
+        from_attributes = True
+
+class BotConfigsStandalone(BotConfigsBase):
     page_refresh: int
     cooldown: int
     prohibited_words: str
@@ -82,6 +90,6 @@ class Admin(AdminBase):
         from_attributes = True
 
 class QuestionAnswerForm(BaseModel):
-    question: str
-    answer_1: str
-    answer_2: str
+    question: dict
+    answer_advertisement: str
+    answer_exposure: str
