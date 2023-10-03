@@ -4,12 +4,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 import asyncio
 
-async def process_incoming_message(client_id, message):
-    await send(message=message, recipient=client_id)
+async def process_incoming_message(client_id, message: dict):
+    if message["type"] == "notification":
+        await send(message=message['data'], recipient=message["send_to"], type="response_data")
+    else:
+        await send(message=message, recipient=client_id)
 
 async def send(message, type: str, recipient: str, exclude: str=""):
     outbound_msg = {}
-    
+
     if not recipient == "all":
         outbound_msg["recipient"] = recipient
     else:
@@ -84,3 +87,4 @@ async def send_naver_accounts():
     await asyncio.sleep(5)
 
     await send(recipient="all", message=botconfigs.model_dump(), type="response_data")
+    return

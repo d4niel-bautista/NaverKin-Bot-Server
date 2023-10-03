@@ -26,8 +26,9 @@ class WebsocketConnectionManager():
         
     async def get_from_ws_conn_outbound(self):
         while True:
-            job = await self.ws_conn_outbound.get()
-            await self.send(job)
+            outbound_msg = await self.ws_conn_outbound.get()
+            print(outbound_msg)
+            await self.send(outbound_msg)
     
     async def client_state_update(self, client_id: str, state: int):
         current_date_time = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -49,4 +50,6 @@ class WebsocketConnectionManager():
             await self.send_to_client(message, client)
     
     async def send_to_client(self, message, recipient: str):
+        if not recipient in self.clients.keys():
+            return
         await self.clients[recipient].send_json(message)
