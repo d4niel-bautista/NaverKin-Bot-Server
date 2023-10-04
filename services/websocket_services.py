@@ -1,8 +1,7 @@
 from services.queues import ws_conn_outbound
-from database import models, database, schemas
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from database import models
 import asyncio
+from services.services import get_account_interactions, get_bot_configs, get_naver_account, get_user_session
 
 async def process_incoming_message(client_id, message: dict):
     if message["type"] == "notification":
@@ -26,51 +25,37 @@ async def send(message, type: str, recipient: str, exclude: str=""):
     
     await ws_conn_outbound.put(outbound_msg)
 
-async def get_naver_account(levelup: bool, filters: list = [], db: Session=next(database.get_db_conn())):
-    return schemas.NaverAccount.model_validate(db.query(models.NaverAccount).filter(and_(models.NaverAccount.status == 0, models.NaverAccount.levelup_id == 1)).filter(*filters).first())\
-            if levelup else\
-            schemas.NaverAccount.model_validate(db.query(models.NaverAccount).filter(models.NaverAccount.status == 0).filter(*filters).first())
-
-async def get_account_interactions(username: str, filters: list = [], db: Session=next(database.get_db_conn())):
-    return schemas.AccountInteraction.model_validate(db.query(models.AccountInteraction).filter(models.AccountInteraction.username == username).filter(*filters).first())
-
-async def get_user_session(username: str, db: Session=next(database.get_db_conn())):
-    return schemas.UserSession.model_validate(db.query(models.UserSession).filter(models.UserSession.username == username).first())
-
-async def get_bot_configs(botconfigs_id: int=1, db: Session=next(database.get_db_conn())):
-    return schemas.BotConfigs.model_validate(db.query(models.BotConfigs).filter(models.BotConfigs.id == botconfigs_id).first())
-
 async def send_naver_accounts():
     from utils import get_string_instances
 
     await send(recipient="all", message="START", type="task")
     await asyncio.sleep(5)
     
-    levelup_account = await get_naver_account(levelup=True)
-    levelup_account_interactions = await get_account_interactions(username=levelup_account.username)
+    levelup_account = await get_naver_account(filters=[models.NaverAccount.levelup_id == 1, models.NaverAccount.status == 0])
+    levelup_account_interactions = await get_account_interactions(filters=[models.AccountInteraction.username == levelup_account.username])
     
     to_skip = []
     while True:
-        questionbot_account = await get_naver_account(levelup=False, filters=[models.NaverAccount.username != levelup_account.username, models.NaverAccount.username.not_in(to_skip)])
-        questionbot_account_interactions = await get_account_interactions(username=questionbot_account.username)
+        questionbot_account = await get_naver_account(filters=[models.NaverAccount.levelup_id == 0, models.NaverAccount.status == 0, models.NaverAccount.username != levelup_account.username, models.NaverAccount.username.not_in(to_skip)])
+        questionbot_account_interactions = await get_account_interactions(filters=[models.AccountInteraction.username == questionbot_account.username])
         if get_string_instances(questionbot_account.username, levelup_account_interactions.interactions) < 1 and get_string_instances(levelup_account_interactions.username, questionbot_account_interactions.interactions) < 1:
             break
         to_skip.append(questionbot_account.username)
         await asyncio.sleep(5)
     
     while True:
-        answerbot_account = await get_naver_account(levelup=False, filters=[models.NaverAccount.username != levelup_account.username, models.NaverAccount.username != questionbot_account.username, models.NaverAccount.username.not_in(to_skip)])
-        answerbot_account_interactions = await get_account_interactions(username=answerbot_account.username)
+        answerbot_account = await get_naver_account(filters=[models.NaverAccount.levelup_id == 0, models.NaverAccount.status == 0, models.NaverAccount.username != levelup_account.username, models.NaverAccount.username != questionbot_account.username, models.NaverAccount.username.not_in(to_skip)])
+        answerbot_account_interactions = await get_account_interactions(filters=[models.AccountInteraction.username == answerbot_account.username])
         if get_string_instances(answerbot_account.username, questionbot_account_interactions.interactions) < 1 and get_string_instances(questionbot_account.username, answerbot_account_interactions.interactions) < 1:
             break
         to_skip.append(answerbot_account.username)
         await asyncio.sleep(5)
     
-    levelup_account_usersession = await get_user_session(username=levelup_account.username)
-    questionbot_account_usersession = await get_user_session(username=questionbot_account.username)
-    answerbot_account_usersession = await get_user_session(username=answerbot_account.username)
+    levelup_account_usersession = await get_user_session(filters=[models.UserSession.username == levelup_account.username])
+    questionbot_account_usersession = await get_user_session(filters=[models.UserSession.username == questionbot_account.username])
+    answerbot_account_usersession = await get_user_session(filters=[models.UserSession.username == answerbot_account.username])
 
-    botconfigs = await get_bot_configs()
+    botconfigs = await get_bot_configs(filters=[models.BotConfigs.id == 1])
 
     await send(recipient="AnswerBot_Exposure", message=levelup_account.model_dump(), type="response_data")
     await asyncio.sleep(1)
