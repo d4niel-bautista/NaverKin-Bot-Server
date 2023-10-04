@@ -1,6 +1,8 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from datetime import datetime
 import services.websocket_services as ws_services
+from database import database
+from sqlalchemy.orm import Session
 
 class WebsocketConnectionManager():
     def __init__(self, queue) -> None:
@@ -9,7 +11,7 @@ class WebsocketConnectionManager():
         self.clients = {}
 
         @self.router.websocket('/{client_id}')
-        async def handle_connection(websocket: WebSocket, client_id: str):
+        async def handle_connection(websocket: WebSocket, client_id: str, db: Session=Depends(database.get_db_conn)):
             await websocket.accept()
             
             if client_id not in self.clients.keys():
@@ -19,7 +21,7 @@ class WebsocketConnectionManager():
             try:
                 while True:
                     data = await websocket.receive_json()
-                    await ws_services.process_incoming_message(client_id, data)
+                    await ws_services.process_incoming_message(client_id, data, db=db)
             except WebSocketDisconnect:
                 await self.client_state_update(client_id, 0)
                 del self.clients[client_id]
