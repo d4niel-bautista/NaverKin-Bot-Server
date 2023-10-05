@@ -54,3 +54,12 @@ async def add_account_interactions(account: schemas.NaverAccountCreate, db: Sess
         return account_interactions
     except:
         db.rollback()
+
+async def update(model: models.Base, data: dict, filters: dict, db: Session):
+    try:
+        db.query(model).filter_by(**filters).update(data)
+        db.commit()
+        return f'UPDATED {model.__tablename__}: {", ".join([i for i in data])} SUCCESSFULLY'
+    except Exception as e:
+        print(e)
+        return "UPDATE FAILED"
