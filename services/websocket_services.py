@@ -3,6 +3,7 @@ from database import models
 import asyncio
 from services.services import get_account_interactions, get_bot_configs, get_naver_account, get_user_session, update
 from sqlalchemy.orm import Session
+from utils import get_string_instances
 
 async def process_incoming_message(client_id, message: dict, db: Session):
     if message["type"] == "notification":
@@ -30,8 +31,6 @@ async def send(message, type: str, recipient: str, exclude: str=""):
     await ws_conn_outbound.put(outbound_msg)
 
 async def send_naver_accounts(db: Session):
-    from utils import get_string_instances
-
     await send(recipient="all", message="START", type="task")
     await asyncio.sleep(5)
     
@@ -79,8 +78,26 @@ async def send_naver_accounts(db: Session):
     return
 
 async def process_update_request(table: str, data: dict, filters: dict, db: Session):
+    if table == "account_interactions":
+        return await update_account_interactions(data=data, filters=filters, db=db)
+    
     for model in models.Base.__subclasses__():
         if model.__tablename__ == table:
             return await update(model=model, data=data, filters=filters, db=db)
     else:
         return "TABLE NOT FOUND!"
+
+async def update_account_interactions(data: dict, filters: dict, db: Session):
+    sender = await get_account_interactions(db=db, filters=[models.AccountInteraction.username == filters['username']])
+    sender_interactions = sender.interactions.split(",")
+    sender_interactions.append(data['username'])
+
+    target = await get_account_interactions(db=db, filters=[models.AccountInteraction.username == data['username']])
+    target_interactions = target.interactions.split(",")
+    target_interactions.append(filters['username'])
+
+    sender_interactions = ",".join([i for i in sender_interactions if i])
+    target_interactions = ",".join([i for i in target_interactions if i])
+
+    await update(model=models.AccountInteraction, data={"interactions": target_interactions}, filters={"username": data['username']}, db=db)
+    return await update(model=models.AccountInteraction, data={"interactions": sender_interactions}, filters={"username": filters['username']}, db=db)
