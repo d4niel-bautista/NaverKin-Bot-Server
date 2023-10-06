@@ -13,6 +13,8 @@ async def process_incoming_message(client_id, message: dict, db: Session):
     elif message["type"] == "update":
         response = await process_update_request(table=message['table'], data=message['data'], filters=message['filters'], db=db)
         await send(message=response, recipient=client_id, type="message")
+    elif message["type"] == "logging":
+        print(message["log"])
 
 async def send(message, type: str, recipient: str, exclude: str=""):
     outbound_msg = {}
