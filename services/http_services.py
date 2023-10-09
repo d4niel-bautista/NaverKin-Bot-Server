@@ -1,20 +1,151 @@
-from database import schemas, models, database
 import asyncio
-from services.services import add_naver_account, add_account_interactions, add_user_session
+from typing import Union
 from fastapi import HTTPException
+from pydantic_core import ValidationError
 from sqlalchemy.orm import Session
+from database import schemas, models
+from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs
+from utils import get_string_instances
+from services.websocket_services import send
 
-async def process_question_answer_form(form: schemas.QuestionAnswerForm, db: Session):
-    from services.websocket_services import send_naver_accounts, send
-    await send_naver_accounts(db=db)
-    await asyncio.sleep(5)
-    await send(recipient="QuestionBot", message={"question": form.question}, type="response_data")
-    await asyncio.sleep(1)
-    await send(recipient="AnswerBot_Advertisement", message={"answer_advertisement": form.answer_advertisement}, type="response_data")
-    await asyncio.sleep(1)
-    await send(recipient="AnswerBot_Exposure", message={"answer_exposure": form.answer_exposure}, type="response_data")
-    await asyncio.sleep(1)
-    return {"message": "Form received and has been sent to bots."}
+async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q1A, schemas.QuestionAnswerForm_1Q2A], db: Session):
+    await send(recipient="all", message="START", type="task")
+
+    if isinstance(form, schemas.QuestionAnswerForm_1Q1A):
+        response = await send_accounts_1Q1A(db=db)
+
+        await asyncio.sleep(5)
+        await send(recipient="QuestionBot", message={"question": form.question}, type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="AnswerBot_Advertisement", message={"answer_advertisement": form.answer}, type="response_data")
+        await asyncio.sleep(1)
+    elif isinstance(form, schemas.QuestionAnswerForm_1Q2A):
+        response = await send_accounts_1Q2A(db=db)
+
+        await asyncio.sleep(5)
+        await send(recipient="QuestionBot", message={"question": form.question}, type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="AnswerBot_Advertisement", message={"answer_advertisement": form.answer_advertisement}, type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="AnswerBot_Exposure", message={"answer_exposure": form.answer_exposure}, type="response_data")
+        await asyncio.sleep(1)
+    return response
+
+async def send_accounts_1Q1A(db: Session):
+    try:
+        questionbot_account = await get_naver_account(db=db, filters=[
+            models.NaverAccount.levelup_id == 0, 
+            models.NaverAccount.status == 0])
+        questionbot_account_interactions = await get_account_interactions(db=db, filters=[
+            models.AccountInteraction.username == questionbot_account.username])
+
+        to_skip = []
+        while True:
+                answerbot_account = await get_naver_account(db=db, filters=[
+                    models.NaverAccount.levelup_id == 0, 
+                    models.NaverAccount.status == 0, 
+                    models.NaverAccount.username != questionbot_account.username, 
+                    models.NaverAccount.username.not_in(to_skip)])
+                answerbot_account_interactions = await get_account_interactions(db=db, filters=[
+                    models.AccountInteraction.username == answerbot_account.username])
+                if get_string_instances(answerbot_account.username, questionbot_account_interactions.interactions) < 1 and get_string_instances(questionbot_account.username, answerbot_account_interactions.interactions) < 1:
+                    break
+                to_skip.append(answerbot_account.username)
+                await asyncio.sleep(2)
+
+        questionbot_account_usersession = await get_user_session(db=db, filters=[
+            models.UserSession.username == questionbot_account.username])
+        answerbot_account_usersession = await get_user_session(db=db, filters=[
+            models.UserSession.username == answerbot_account.username])
+
+        botconfigs = await get_bot_configs(db=db, filters=[models.BotConfigs.id == 1])
+
+        await asyncio.sleep(1)
+        await send(recipient="QuestionBot", message=questionbot_account.model_dump(), type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="AnswerBot_Advertisement", message=answerbot_account.model_dump(), type="response_data")
+        await asyncio.sleep(5)
+
+        await asyncio.sleep(1)
+        await send(recipient="QuestionBot", message=questionbot_account_usersession.model_dump(), type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="AnswerBot_Advertisement", message=answerbot_account_usersession.model_dump(), type="response_data")
+        await asyncio.sleep(5)
+
+        await send(recipient="all", message=botconfigs.model_dump(), type="response_data")
+        return {"message": "Form received and started automation.", "question_bot": questionbot_account, "answer_bot": answerbot_account}
+    except ValidationError:
+        accounts = [account.model_dump_json() for account in await get_account_interactions(db=db, fetch_one=False)]
+        if not accounts:
+            raise HTTPException(status_code=500, detail="No existing accounts in the database.")
+        raise HTTPException(status_code=500, detail="There is not enough accounts to start the automation or all accounts have already interacted with each other.\n" + "\n".join(accounts))
+
+async def send_accounts_1Q2A(db: Session):
+    try:
+        levelup_account = await get_naver_account(db=db, filters=[
+            models.NaverAccount.levelup_id == 1, 
+            models.NaverAccount.status == 0])
+        levelup_account_interactions = await get_account_interactions(db=db, filters=[
+            models.AccountInteraction.username == levelup_account.username])
+        
+        to_skip = []
+        while True:
+            questionbot_account = await get_naver_account(db=db, filters=[
+                models.NaverAccount.levelup_id == 0, 
+                models.NaverAccount.status == 0, 
+                models.NaverAccount.username != levelup_account.username, 
+                models.NaverAccount.username.not_in(to_skip)])
+            questionbot_account_interactions = await get_account_interactions(db=db, filters=[
+                models.AccountInteraction.username == questionbot_account.username])
+            if get_string_instances(questionbot_account.username, levelup_account_interactions.interactions) < 1 and get_string_instances(levelup_account_interactions.username, questionbot_account_interactions.interactions) < 1:
+                break
+            to_skip.append(questionbot_account.username)
+            await asyncio.sleep(2)
+        
+        while True:
+            answerbot_account = await get_naver_account(db=db, filters=[
+                models.NaverAccount.levelup_id == 0, 
+                models.NaverAccount.status == 0, 
+                models.NaverAccount.username != levelup_account.username, 
+                models.NaverAccount.username != questionbot_account.username, 
+                models.NaverAccount.username.not_in(to_skip)])
+            answerbot_account_interactions = await get_account_interactions(db=db, filters=[
+                models.AccountInteraction.username == answerbot_account.username])
+            if get_string_instances(answerbot_account.username, questionbot_account_interactions.interactions) < 1 and get_string_instances(questionbot_account.username, answerbot_account_interactions.interactions) < 1:
+                break
+            to_skip.append(answerbot_account.username)
+            await asyncio.sleep(2)
+        
+        levelup_account_usersession = await get_user_session(db=db, filters=[
+            models.UserSession.username == levelup_account.username])
+        questionbot_account_usersession = await get_user_session(db=db, filters=[
+            models.UserSession.username == questionbot_account.username])
+        answerbot_account_usersession = await get_user_session(db=db, filters=[
+            models.UserSession.username == answerbot_account.username])
+
+        botconfigs = await get_bot_configs(db=db, filters=[models.BotConfigs.id == 1])
+
+        await send(recipient="AnswerBot_Exposure", message=levelup_account.model_dump(), type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="QuestionBot", message=questionbot_account.model_dump(), type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="AnswerBot_Advertisement", message=answerbot_account.model_dump(), type="response_data")
+        await asyncio.sleep(5)
+
+        await send(recipient="AnswerBot_Exposure", message=levelup_account_usersession.model_dump(), type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="QuestionBot", message=questionbot_account_usersession.model_dump(), type="response_data")
+        await asyncio.sleep(1)
+        await send(recipient="AnswerBot_Advertisement", message=answerbot_account_usersession.model_dump(), type="response_data")
+        await asyncio.sleep(5)
+
+        await send(recipient="all", message=botconfigs.model_dump(), type="response_data")
+        return {"message": "Form received and started automation.", "question_bot": questionbot_account, "answer_bot_exposure": levelup_account, "answer_bot_advertisement": answerbot_account}
+    except ValidationError:
+        accounts = [account.model_dump_json() for account in await get_account_interactions(db=db, fetch_one=False)]
+        if not accounts:
+            raise HTTPException(status_code=500, detail="No existing accounts in the database.")
+        raise HTTPException(status_code=500, detail="There is not enough accounts to start the automation or all accounts have already interacted with each other.\n" + "\n".join(accounts))
 
 async def add_account(account: schemas.NaverAccountCreate, db: Session):
     naver_account = db.query(models.NaverAccount).filter(models.NaverAccount.username == account.model_dump()["username"]).first()

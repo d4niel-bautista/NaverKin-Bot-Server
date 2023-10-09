@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends
 import services.http_services as http_services
 from database import schemas, database
 from sqlalchemy.orm import Session
+from typing import Union
 
 class HTTPRequestHandler():
     def __init__(self) -> None:
         self.router = APIRouter()
 
         @self.router.post("/v1/api/question_answer")
-        async def process_question_answer_form(form: schemas.QuestionAnswerForm, db: Session=Depends(database.get_db_conn)):
+        async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q1A, schemas.QuestionAnswerForm_1Q2A], db: Session=Depends(database.get_db_conn)):
             return await http_services.process_question_answer_form(form, db)
         
         @self.router.post("/v1/api/add_account")

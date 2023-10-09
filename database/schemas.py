@@ -89,7 +89,12 @@ class Admin(AdminBase):
     class Config:
         from_attributes = True
 
-class QuestionAnswerForm(BaseModel):
+class QuestionAnswerFormBase(BaseModel):
     question: dict
+
+class QuestionAnswerForm_1Q2A(QuestionAnswerFormBase):
     answer_advertisement: str
     answer_exposure: str
+
+class QuestionAnswerForm_1Q1A(QuestionAnswerFormBase):
+    answer: str
