@@ -19,6 +19,8 @@ async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q
         await asyncio.sleep(1)
         await send(recipient="AnswerBot_Advertisement", message={"answer_advertisement": form.answer}, type="response_data")
         await asyncio.sleep(1)
+
+        await send(recipient="QuestionBot", message="1Q1A", type="response_data")
     elif isinstance(form, schemas.QuestionAnswerForm_1Q2A):
         response = await send_accounts_1Q2A(db=db)
 
@@ -29,6 +31,8 @@ async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q
         await asyncio.sleep(1)
         await send(recipient="AnswerBot_Exposure", message={"answer_exposure": form.answer_exposure}, type="response_data")
         await asyncio.sleep(1)
+
+        await send(recipient="QuestionBot", message="1Q2A", type="response_data")
     return response
 
 async def send_accounts_1Q1A(db: Session):
