@@ -15,3 +15,7 @@ class HTTPRequestHandler():
         @self.router.post("/v1/api/add_account")
         async def add_account(account: schemas.NaverAccountCreate, db: Session=Depends(database.get_db_conn)):
             return await http_services.add_account(account, db)
+        
+        @self.router.get("/v1/api/generate_form_content")
+        async def generate_form_content(db: Session=Depends(database.get_db_conn)):
+            return await http_services.generate_form_content(db)

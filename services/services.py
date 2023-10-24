@@ -25,6 +25,11 @@ async def get_bot_configs(db: Session, filters: list=[], fetch_one: bool=True):
             if fetch_one else\
             list(map(schemas.BotConfigs.model_validate, db.query(models.BotConfigs).filter(*filters).all()))
 
+async def get_prompt_configs(db: Session, filters: list=[], fetch_one: bool=True):
+    return schemas.PromptConfigs.model_validate(db.query(models.PromptConfigs).filter(*filters).first())\
+            if fetch_one else\
+            list(map(schemas.PromptConfigs.model_validate, db.query(models.PromptConfigs).filter(*filters).all()))
+
 async def add_naver_account(account: schemas.NaverAccountCreate, db: Session):
     naver_account = models.NaverAccount(**account.model_dump())
     db.add(naver_account)

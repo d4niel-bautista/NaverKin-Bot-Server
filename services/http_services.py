@@ -1,11 +1,12 @@
 import asyncio
+import json
 from typing import Union
 from fastapi import HTTPException
 from pydantic_core import ValidationError
 from sqlalchemy.orm import Session
 from database import schemas, models
-from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs
-from utils import get_string_instances
+from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs
+from utils import get_string_instances, generate_text
 from services.websocket_services import send
 
 async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q1A, schemas.QuestionAnswerForm_1Q2A], db: Session):
@@ -152,7 +153,11 @@ async def send_accounts_1Q2A(db: Session):
         raise HTTPException(status_code=500, detail="There is not enough accounts to start the automation or all accounts have already interacted with each other.\n" + "\n".join(accounts))
 
 async def add_account(account: schemas.NaverAccountCreate, db: Session):
-    naver_account = db.query(models.NaverAccount).filter(models.NaverAccount.username == account.model_dump()["username"]).first()
+    try:
+        naver_account = await get_naver_account(db=db, filters=[models.NaverAccount.username == account.model_dump()["username"]])
+    except:
+        naver_account = None
+    
     if naver_account:
         raise HTTPException(status_code=403, detail=f'Account with username "{naver_account.username}" already exists!')
 
@@ -160,3 +165,25 @@ async def add_account(account: schemas.NaverAccountCreate, db: Session):
     await add_user_session(account=added_account, db=db)
     await add_account_interactions(account=added_account, db=db)
     return added_account
+
+async def generate_form_content(db: Session):
+    attempts = 0
+    while True:
+        if attempts >= 3:
+            raise HTTPException(status_code=500, detail="There is problem with ChatGPT API as of the moment.")
+        question_content_prompt = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 1])
+        question_content = await generate_text(query=question_content_prompt.query, prompt=question_content_prompt.prompt, prohibited_words=question_content_prompt.prohibited_words)
+        question_content = json.loads(question_content)
+        if type(question_content) is dict and len(question_content) == 2:
+            break
+        await asyncio.sleep(1)
+        attempts += 1
+
+    question = f"{question_content['title']}\n{question_content['content']}"
+
+    answer_advertisement_content_prompt = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 2])
+    answer_advertisement_content = await generate_text(query=question, prompt=answer_advertisement_content_prompt.prompt, prohibited_words=answer_advertisement_content_prompt.prohibited_words)
+
+    answer_exposure_content_prompt = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
+    answer_exposure_content = await generate_text(query=question, prompt=answer_exposure_content_prompt.prompt, prohibited_words=answer_exposure_content_prompt.prohibited_words)
+    return {"question": question_content, "answer_advertisement": answer_advertisement_content, "answer_exposure": answer_exposure_content}
