@@ -97,6 +97,7 @@ class QuestionAnswerForm_1Q1A(QuestionAnswerFormBase):
 class PromptConfigs(BaseModel):
     id: int
     description: str
+    query: str
     prompt: str
     prescript: str
     postscript: str

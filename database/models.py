@@ -77,6 +77,7 @@ class PromptConfigs(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String(255), unique=True, index=True, default="")
+    query = Column(Text, index=True, default="")
     prompt = Column(Text, index=True, default="")
     prescript = Column(Text, index=True, default="")
     postscript = Column(Text, index=True, default="")
