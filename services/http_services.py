@@ -187,3 +187,7 @@ async def generate_form_content(db: Session):
     answer_exposure_content_prompt = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
     answer_exposure_content = await generate_text(query=question, prompt=answer_exposure_content_prompt.prompt, prohibited_words=answer_exposure_content_prompt.prohibited_words)
     return {"question": question_content, "answer_advertisement": answer_advertisement_content, "answer_exposure": answer_exposure_content}
+
+async def fetch_prompt_configs(db: Session):
+    prompt_configs = await get_prompt_configs(db=db, fetch_one=False)
+    return prompt_configs

@@ -19,3 +19,7 @@ class HTTPRequestHandler():
         @self.router.get("/v1/api/generate_form_content")
         async def generate_form_content(db: Session=Depends(database.get_db_conn)):
             return await http_services.generate_form_content(db)
+        
+        @self.router.get("/v1/api/prompt_configs")
+        async def get_prompt_configs(db: Session=Depends(database.get_db_conn)):
+            return await http_services.fetch_prompt_configs(db)
