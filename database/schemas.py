@@ -49,12 +49,7 @@ class BotConfigs(BotConfigsBase):
 class BotConfigsStandalone(BotConfigsBase):
     page_refresh: int
     cooldown: int
-    prohibited_words: str
-    prompt: str
-    prescript: str
-    postscript: str
     max_interactions: int
-    openai_api_key: str
 
     class Config:
         from_attributes = True
@@ -98,3 +93,15 @@ class QuestionAnswerForm_1Q2A(QuestionAnswerFormBase):
 
 class QuestionAnswerForm_1Q1A(QuestionAnswerFormBase):
     answer: str
+
+class PromptConfigs(BaseModel):
+    id: int
+    description: str
+    prompt: str
+    prescript: str
+    postscript: str
+    prohibited_words: str
+    openai_api_key: str
+
+    class Config:
+        from_attributes = True

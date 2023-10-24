@@ -40,12 +40,7 @@ class BotConfigs(Base):
     submit_delay = Column(Integer, index=True, default=600)
     page_refresh = Column(Integer, index=True, default=600)
     cooldown = Column(Integer, index=True, default=86400)
-    prohibited_words = Column(Text, index=True, default="")
-    prompt = Column(Text, index=True, default="")
-    prescript = Column(Text, index=True, default="")
-    postscript = Column(Text, index=True, default="")
     max_interactions = Column(Integer, index=True, default=1)
-    openai_api_key = Column(Text, index=True, default="")
 
 class NaverKinQuestionPost(Base):
     __tablename__ = "naverkin_question_posts"
@@ -76,3 +71,14 @@ class AdminLogin(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(30), unique=True, index=True)
     password = Column(String(30), index=True)
+
+class PromptConfigs(Base):
+    __tablename__ = "prompt_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    description = Column(String(255), unique=True, index=True, default="")
+    prompt = Column(Text, index=True, default="")
+    prescript = Column(Text, index=True, default="")
+    postscript = Column(Text, index=True, default="")
+    prohibited_words = Column(Text, index=True, default="")
+    openai_api_key = Column(Text, index=True, default="")
