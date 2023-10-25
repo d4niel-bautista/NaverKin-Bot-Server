@@ -171,8 +171,9 @@ async def generate_form_content(db: Session):
     while True:
         if attempts >= 3:
             raise HTTPException(status_code=500, detail="There is problem with ChatGPT API as of the moment.")
-        question_content_prompt = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 1])
-        question_content = await generate_text(query=question_content_prompt.query, prompt=question_content_prompt.prompt, prohibited_words=question_content_prompt.prohibited_words)
+        question_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 1])
+        prohibited_words = question_prompt_configs.prohibited_words.split(',')
+        question_content = await generate_text(query=question_prompt_configs.query, prompt=question_prompt_configs.prompt, prohibited_words=prohibited_words)
         question_content = json.loads(question_content)
         if type(question_content) is dict and len(question_content) == 2:
             break
@@ -181,13 +182,16 @@ async def generate_form_content(db: Session):
 
     question = f"{question_content['title']}\n{question_content['content']}"
 
-    answer_advertisement_content_prompt = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 2])
-    answer_advertisement_content = await generate_text(query=question, prompt=answer_advertisement_content_prompt.prompt, prohibited_words=answer_advertisement_content_prompt.prohibited_words)
+    answer_advertisement_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 2])
+    answer_advertisement_content = await generate_text(query=question, prompt=answer_advertisement_prompt_configs.prompt, prohibited_words=prohibited_words)
 
-    answer_exposure_content_prompt = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
-    answer_exposure_content = await generate_text(query=question, prompt=answer_exposure_content_prompt.prompt, prohibited_words=answer_exposure_content_prompt.prohibited_words)
+    answer_exposure_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
+    answer_exposure_content = await generate_text(query=question, prompt=answer_exposure_prompt_configs.prompt, prohibited_words=prohibited_words)
     return {"question": question_content, "answer_advertisement": answer_advertisement_content, "answer_exposure": answer_exposure_content}
 
 async def fetch_prompt_configs(db: Session):
-    prompt_configs = await get_prompt_configs(db=db, fetch_one=False)
-    return prompt_configs
+    question_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 1])
+    answer_advertisement_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 2])
+    answer_exposure_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
+    prohibited_words = "\n".join(question_prompt_configs.prohibited_words.split(','))
+    return {"question": question_prompt_configs, "answer_advertisement": answer_advertisement_prompt_configs, "answer_exposure": answer_exposure_prompt_configs, "prohibited_words": prohibited_words}
