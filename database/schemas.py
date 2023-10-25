@@ -106,3 +106,9 @@ class PromptConfigs(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PromptConfigsUpdate(BaseModel):
+    question: dict
+    answer_advertisement: dict
+    answer_exposure: dict
+    prohibited_words: str

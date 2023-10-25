@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from pydantic_core import ValidationError
 from sqlalchemy.orm import Session
 from database import schemas, models
-from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs
+from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, update
 from utils import get_string_instances, generate_text
 from services.websocket_services import send
 
@@ -195,3 +195,9 @@ async def fetch_prompt_configs(db: Session):
     answer_exposure_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
     prohibited_words = "\n".join(question_prompt_configs.prohibited_words.split(','))
     return {"question": question_prompt_configs, "answer_advertisement": answer_advertisement_prompt_configs, "answer_exposure": answer_exposure_prompt_configs, "prohibited_words": prohibited_words}
+
+async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpdate, db: Session):
+    prohibited_words = ",".join([i.strip() for i in prompt_configs_update.prohibited_words.split("\n")])
+    await update(model=models.PromptConfigs, data={"query": prompt_configs_update.question['query'], "prompt": prompt_configs_update.question['prompt'], "prohibited_words": prohibited_words}, filters={"description": "question"}, db=db)
+    await update(model=models.PromptConfigs, data={"query": prompt_configs_update.answer_advertisement['query'], "prompt": prompt_configs_update.answer_advertisement['prompt']}, filters={"description": "answer_advertisement"}, db=db)
+    return await update(model=models.PromptConfigs, data={"query": prompt_configs_update.answer_exposure['query'], "prompt": prompt_configs_update.answer_exposure['prompt']}, filters={"description": "answer_exposure"}, db=db)

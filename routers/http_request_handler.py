@@ -23,3 +23,7 @@ class HTTPRequestHandler():
         @self.router.get("/v1/api/prompt_configs")
         async def get_prompt_configs(db: Session=Depends(database.get_db_conn)):
             return await http_services.fetch_prompt_configs(db)
+        
+        @self.router.post("/v1/api/prompt_configs")
+        async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpdate, db: Session=Depends(database.get_db_conn)):
+            return await http_services.update_prompt_configs(prompt_configs_update, db)
