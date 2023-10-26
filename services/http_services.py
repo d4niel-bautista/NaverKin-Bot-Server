@@ -166,6 +166,9 @@ async def add_account(account: schemas.NaverAccountCreate, db: Session):
     await add_account_interactions(account=added_account, db=db)
     return added_account
 
+async def fetch_accounts(db: Session):
+    return await get_naver_account(db=db, fetch_one=False, schema=schemas.NaverAccountCreate)
+
 async def generate_form_content(db: Session):
     attempts = 0
     while True:
