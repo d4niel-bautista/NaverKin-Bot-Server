@@ -5,10 +5,10 @@ from fastapi import HTTPException
 def create_database():
     models.Base.metadata.create_all(bind=database.engine)
 
-async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True):
-    return schemas.NaverAccount.model_validate(db.query(models.NaverAccount).filter(*filters).first())\
+async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccount):
+    return schema.model_validate(db.query(models.NaverAccount).filter(*filters).first())\
             if fetch_one else\
-            list(map(schemas.NaverAccount.model_validate, db.query(models.NaverAccount).filter(*filters).all()))
+            list(map(schema.model_validate, db.query(models.NaverAccount).filter(*filters).all()))
 
 async def get_account_interactions(db: Session, filters: list=[], fetch_one: bool=True):
     return schemas.AccountInteraction.model_validate(db.query(models.AccountInteraction).filter(*filters).first())\
