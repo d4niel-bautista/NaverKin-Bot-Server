@@ -3,3 +3,5 @@ uvicorn
 sqlalchemy
 python-dotenv
 pymysql
+python-multipart
+python-jose[cryptography]
