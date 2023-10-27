@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 import services.http_services as http_services
 from database import schemas, database
 from sqlalchemy.orm import Session
 from typing import Union
+from services.authentication import authenticate_user, create_token
 
 class HTTPRequestHandler():
     def __init__(self) -> None:
@@ -35,3 +37,11 @@ class HTTPRequestHandler():
         @self.router.post("/v1/api/prompt_configs")
         async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpdate, db: Session=Depends(database.get_db_conn)):
             return await http_services.update_prompt_configs(prompt_configs_update, db)
+        
+        @self.router.post("/v1/api/token")
+        async def generate_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db_conn),
+        ):
+            user = await authenticate_user(form_data.username, form_data.password, db)
+            if not user:
+                raise HTTPException(status_code=401, detail="Invalid username or password")
+            return await create_token(user)

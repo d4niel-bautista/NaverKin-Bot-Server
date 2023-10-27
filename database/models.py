@@ -72,6 +72,9 @@ class AdminLogin(Base):
     username = Column(String(30), unique=True, index=True)
     password = Column(String(30), index=True)
 
+    def verify_password(self, password: str):
+        return self.password == password
+
 class PromptConfigs(Base):
     __tablename__ = "prompt_configs"
 

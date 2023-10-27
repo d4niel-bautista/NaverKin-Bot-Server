@@ -5,6 +5,16 @@ from fastapi import HTTPException
 def create_database():
     models.Base.metadata.create_all(bind=database.engine)
 
+async def get_admin_account(db: Session, filters: list=[], fetch_one: bool=True, schema_validate: bool=True):
+    if schema_validate:
+        return schemas.Admin.model_validate(db.query(models.AdminLogin).filter(*filters).first())\
+                if fetch_one else\
+                list(map(schemas.Admin.model_validate, db.query(models.AdminLogin).filter(*filters).all()))
+    else:
+        return db.query(models.AdminLogin).filter(*filters).first()\
+                if fetch_one else\
+                db.query(models.AdminLogin).filter(*filters).all()
+
 async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccountBase):
     return schema.model_validate(db.query(models.NaverAccount).filter(*filters).first())\
             if fetch_one else\
