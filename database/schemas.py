@@ -18,6 +18,9 @@ class NaverAccountCreate(NaverAccountBase):
     class Config:
         from_attributes = True
 
+class NaverAccountAll(NaverAccountCreate):
+    id: int
+
 class NaverAccount(NaverAccountBase):
     class Config:
         from_attributes = True

@@ -167,7 +167,12 @@ async def add_account(account: schemas.NaverAccountCreate, db: Session):
     return added_account
 
 async def fetch_accounts(db: Session):
-    return await get_naver_account(db=db, fetch_one=False, schema=schemas.NaverAccountCreate)
+    return await get_naver_account(db=db, fetch_one=False, schema=schemas.NaverAccountAll)
+
+async def update_account(updated_account: schemas.NaverAccountAll, db: Session):
+    updated_account = updated_account.model_dump()
+    id = updated_account.pop("id")
+    return await update(model=models.NaverAccount, data=updated_account, filters={"id": id}, db=db)
 
 async def generate_form_content(db: Session):
     attempts = 0
