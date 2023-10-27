@@ -21,7 +21,7 @@ class HTTPRequestHandler():
             return await http_services.fetch_accounts(db)
         
         @self.router.patch("/v1/api/update_account")
-        async def update_account(updated_account: schemas.NaverAccountAll, db: Session=Depends(database.get_db_conn)):
+        async def update_account(updated_account: schemas.NaverAccount, db: Session=Depends(database.get_db_conn)):
             return await http_services.update_account(updated_account, db)
         
         @self.router.get("/v1/api/generate_form_content")

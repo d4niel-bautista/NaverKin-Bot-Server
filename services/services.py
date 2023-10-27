@@ -5,7 +5,7 @@ from fastapi import HTTPException
 def create_database():
     models.Base.metadata.create_all(bind=database.engine)
 
-async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccount):
+async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccountBase):
     return schema.model_validate(db.query(models.NaverAccount).filter(*filters).first())\
             if fetch_one else\
             list(map(schema.model_validate, db.query(models.NaverAccount).filter(*filters).all()))
@@ -36,7 +36,7 @@ async def add_naver_account(account: schemas.NaverAccountCreate, db: Session):
     try:
         db.commit()
         db.refresh(naver_account)
-        return schemas.NaverAccount.model_validate(naver_account)
+        return schemas.NaverAccountBase.model_validate(naver_account)
     except:
         db.rollback()
 

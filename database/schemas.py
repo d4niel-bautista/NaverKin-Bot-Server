@@ -8,6 +8,9 @@ class NaverAccountBase(BaseModel):
     account_url: str
     status: int
 
+    class Config:
+        from_attributes = True
+
 class NaverAccountCreate(NaverAccountBase):
     recovery_email: str
     name: str
@@ -15,15 +18,8 @@ class NaverAccountCreate(NaverAccountBase):
     gender: str
     mobile_no: str
 
-    class Config:
-        from_attributes = True
-
-class NaverAccountAll(NaverAccountCreate):
+class NaverAccount(NaverAccountCreate):
     id: int
-
-class NaverAccount(NaverAccountBase):
-    class Config:
-        from_attributes = True
 
 class UserSession(BaseModel):
     username: str
@@ -62,7 +58,7 @@ class QuestionPost(BaseModel):
     title: str
     status: int
     author: str
-    respondent: NaverAccount
+    respondent: NaverAccountBase
 
     class Config:
         from_attributes = True
@@ -81,8 +77,14 @@ class AnswerResponse(BaseModel):
 class AdminBase(BaseModel):
     username: str
 
-class Admin(AdminBase):
+class AdminCreate(AdminBase):
     password: str
+
+    class Config:
+        from_attributes = True
+
+class Admin(AdminBase):
+    id: int
 
     class Config:
         from_attributes = True
