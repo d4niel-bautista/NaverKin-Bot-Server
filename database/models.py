@@ -17,6 +17,7 @@ class NaverAccount(Base):
     levelup_id = Column(Integer, index=True)
     account_url = Column(String(255), index=True)
     status = Column(Integer, index=True)
+    interactions = relationship("AccountInteraction", cascade="all, delete-orphan")
 
 class UserSession(Base):
     __tablename__ = "user_sessions"

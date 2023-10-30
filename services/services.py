@@ -15,10 +15,15 @@ async def get_admin_account(db: Session, filters: list=[], fetch_one: bool=True,
                 if fetch_one else\
                 db.query(models.AdminLogin).filter(*filters).all()
 
-async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccountBase):
-    return schema.model_validate(db.query(models.NaverAccount).filter(*filters).first())\
-            if fetch_one else\
-            list(map(schema.model_validate, db.query(models.NaverAccount).filter(*filters).all()))
+async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccountBase, schema_validate: bool=True):
+    if schema_validate:
+        return schema.model_validate(db.query(models.NaverAccount).filter(*filters).first())\
+                if fetch_one else\
+                list(map(schema.model_validate, db.query(models.NaverAccount).filter(*filters).all()))
+    else:
+        return db.query(models.NaverAccount).filter(*filters).first()\
+                if fetch_one else\
+                db.query(models.NaverAccount).filter(*filters).all()
 
 async def get_account_interactions(db: Session, filters: list=[], fetch_one: bool=True):
     return schemas.AccountInteraction.model_validate(db.query(models.AccountInteraction).filter(*filters).first())\
@@ -74,7 +79,16 @@ async def update(model: models.Base, data: dict, filters: dict, db: Session):
     try:
         db.query(model).filter_by(**filters).update(data)
         db.commit()
-        return f'UPDATED {model.__tablename__}: {", ".join([i for i in data])} SUCCESSFULLY'
+        return True
     except Exception as e:
         print(e)
-        return "UPDATE FAILED"
+        return False
+    
+async def delete(model: models.Base, db: Session):
+    try:
+        db.delete(model)
+        db.commit()
+        return True
+    except Exception as e:
+        print(e)
+        return False

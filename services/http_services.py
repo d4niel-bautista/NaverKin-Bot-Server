@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from pydantic_core import ValidationError
 from sqlalchemy.orm import Session
 from database import schemas, models
-from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, update
+from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, update, delete
 from utils import get_string_instances, generate_text
 from services.websocket_services import send
 
@@ -173,6 +173,12 @@ async def update_account(updated_account: schemas.NaverAccount, db: Session):
     updated_account = updated_account.model_dump()
     id = updated_account.pop("id")
     return await update(model=models.NaverAccount, data=updated_account, filters={"id": id}, db=db)
+
+async def delete_account(delete_account: schemas.NaverAccountDelete, db: Session):
+    naver_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == delete_account.model_dump()['id'], models.NaverAccount.username == delete_account.model_dump()['username']], schema_validate=False)
+    if not naver_account:
+        raise HTTPException(status_code=404, detail=f'Account "{delete_account.model_dump()["username"]}" does not exist.')
+    return await delete(model=naver_account, db=db)
 
 async def generate_form_content(db: Session):
     attempts = 0

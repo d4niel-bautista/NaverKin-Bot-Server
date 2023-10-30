@@ -1,6 +1,13 @@
 from pydantic import BaseModel
 from datetime import date
 
+class NaverAccountDelete(BaseModel):
+    id: int
+    username: str
+
+    class Config:
+        from_attributes = True
+
 class NaverAccountBase(BaseModel):
     username: str
     password: str
