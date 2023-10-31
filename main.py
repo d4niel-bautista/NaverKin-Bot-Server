@@ -1,2 +1,4 @@
 from networking.server import server
-from services import services
+from mangum import Mangum
+
+handler = Mangum(server.app)
