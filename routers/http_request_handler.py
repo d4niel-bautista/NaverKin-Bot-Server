@@ -49,6 +49,6 @@ class HTTPRequestHandler():
                 raise HTTPException(status_code=401, detail="Invalid username or password")
             return await create_token(user)
         
-        @self.router.post("/v1/api/is_authenticated")
+        @self.router.get("/v1/api/is_authenticated")
         async def is_authenticated(user: schemas.Admin = Depends(get_current_user)):
             return user
