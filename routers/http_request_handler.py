@@ -29,6 +29,10 @@ class HTTPRequestHandler():
         @self.router.delete("/v1/api/delete_account")
         async def delete_account(delete_account: schemas.NaverAccountDelete, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.delete_account(delete_account, db)
+        
+        @self.router.get("/v1/api/interactions")
+        async def fetch_accounts(db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
+            return await http_services.fetch_interactions(db)
 
         @self.router.get("/v1/api/generate_form_content")
         async def generate_form_content(db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):

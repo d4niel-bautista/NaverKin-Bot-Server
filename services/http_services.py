@@ -180,6 +180,9 @@ async def delete_account(delete_account: schemas.NaverAccountDelete, db: Session
         raise HTTPException(status_code=404, detail=f'Account "{delete_account.model_dump()["username"]}" does not exist.')
     return await delete(model=naver_account, db=db)
 
+async def fetch_interactions(db: Session):
+    return await get_account_interactions(db=db, fetch_one=False)
+
 async def generate_form_content(db: Session):
     attempts = 0
     while True:
