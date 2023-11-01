@@ -5,7 +5,7 @@ import os
 import shutil
 
 # Define the target folder where you want to download the dependencies
-target_folder = "dependencies"
+target_folder = "python"
 
 if os.path.isdir(target_folder):
     shutil.rmtree(target_folder)
@@ -21,7 +21,8 @@ for package in dependencies:
 print(f"Dependencies downloaded to {target_folder}")
 
 # Define the name of the ZIP file you want to create
-zip_file_name = "aws_lambda_NaverKinBotServer.zip"
+zip_base_dependencies = "base_dependencies_layer.zip"
+zip_file_name = "naver_kin_bot_server.zip"
 
 # Create a list to store patterns from .gitignore
 ignore_patterns = []
@@ -32,31 +33,33 @@ with open('.gitignore', 'r') as gitignore_file:
         if not line.startswith('#') and not line.isspace():
             ignore_patterns.append(line.strip())
 
-ignore_patterns.extend(['create_lambda_package.py', '.git', 'Setup Environment.bat', 'Start Server.bat', 'venv', '.gitignore', zip_file_name, 'requirements.txt'])
+ignore_patterns.extend(['create_lambda_package.py', '.git', 'Setup Environment.bat', 'Start Server.bat', 'venv', '.gitignore', zip_file_name, 'requirements.txt', zip_base_dependencies])
 
 if os.path.exists(zip_file_name):
+    os.remove(zip_base_dependencies)
     os.remove(zip_file_name)
     print(f"Existing ZIP file '{zip_file_name}' deleted.")
-    
-# Create a ZIP archive while respecting the ignore patterns
-with zipfile.ZipFile(zip_file_name, 'w', zipfile.ZIP_DEFLATED) as my_zip:
-    current_directory = Path('.')
+
+# Create a ZIP archive for base dependencies
+with zipfile.ZipFile(zip_base_dependencies, 'w', zipfile.ZIP_DEFLATED) as my_zip:
     temp_deps = Path(target_folder)
 
     for subdir in temp_deps.iterdir():
         if not any(subdir.match(pattern) for pattern in ignore_patterns):
             for file_path in subdir.rglob('*'):
-                # Calculate the relative path to remove the 'dependencies\' prefix
-                relative_path = file_path.relative_to(target_folder)
-                            # Exclude __pycache__ folders and their contents
+                # Exclude __pycache__ folders and their contents
                 if (
                     '__pycache__' not in file_path.parts  # Exclude __pycache__ folders
                     and not any(file_path.match(pattern) for pattern in ignore_patterns)
                 ):
-                    my_zip.write(file_path, arcname=relative_path)
+                    my_zip.write(file_path)
             if not os.path.isdir(subdir):
-                relative_path = subdir.relative_to(target_folder)
-                my_zip.write(subdir, arcname=relative_path)
+                my_zip.write(subdir)
+    shutil.rmtree(target_folder)
+    
+# Create a ZIP archive while respecting the ignore patterns
+with zipfile.ZipFile(zip_file_name, 'w', zipfile.ZIP_DEFLATED) as my_zip:
+    current_directory = Path('.')
 
     for file_path in current_directory.rglob('*'):
         if not any(file_path.match(pattern) for pattern in ignore_patterns):
