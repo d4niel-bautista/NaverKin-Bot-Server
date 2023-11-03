@@ -169,8 +169,7 @@ async def add_account(account: schemas.NaverAccountCreate, db: Session):
 async def fetch_accounts(db: Session):
     return await get_naver_account(db=db, fetch_one=False, schema=schemas.NaverAccount)
 
-async def update_account(updated_account: schemas.NaverAccount, db: Session):
-    updated_account = updated_account.model_dump()
+async def update_account(updated_account: dict, db: Session):
     id = updated_account.pop("id")
     return await update(model=models.NaverAccount, data=updated_account, filters={"id": id}, db=db)
 

@@ -23,7 +23,7 @@ class HTTPRequestHandler():
             return await http_services.fetch_accounts(db)
         
         @self.router.patch("/v1/api/update_account")
-        async def update_account(updated_account: schemas.NaverAccount, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
+        async def update_account(updated_account: dict, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.update_account(updated_account, db)
         
         @self.router.delete("/v1/api/delete_account")
