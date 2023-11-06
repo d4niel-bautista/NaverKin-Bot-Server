@@ -5,6 +5,7 @@ from database import schemas, database
 from sqlalchemy.orm import Session
 from typing import Union
 from services.authentication import authenticate_user, create_token, get_current_user
+from typing import List, Dict
 
 class HTTPRequestHandler():
     def __init__(self) -> None:
@@ -23,12 +24,12 @@ class HTTPRequestHandler():
             return await http_services.fetch_accounts(db)
         
         @self.router.patch("/v1/api/update_account")
-        async def update_account(updated_account: dict, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
+        async def update_account(updated_account: Dict, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.update_account(updated_account, db)
         
         @self.router.delete("/v1/api/delete_account")
-        async def delete_account(delete_account: schemas.NaverAccountDelete, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
-            return await http_services.delete_account(delete_account, db)
+        async def delete_account(id_list: List[int], db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
+            return await http_services.delete_account(id_list, db)
         
         @self.router.get("/v1/api/interactions")
         async def fetch_accounts(db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):

@@ -173,11 +173,20 @@ async def update_account(updated_account: dict, db: Session):
     id = updated_account.pop("id")
     return await update(model=models.NaverAccount, data=updated_account, filters={"id": id}, db=db)
 
-async def delete_account(delete_account: schemas.NaverAccountDelete, db: Session):
-    naver_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == delete_account.model_dump()['id'], models.NaverAccount.username == delete_account.model_dump()['username']], schema_validate=False)
-    if not naver_account:
-        raise HTTPException(status_code=404, detail=f'Account "{delete_account.model_dump()["username"]}" does not exist.')
-    return await delete(model=naver_account, db=db)
+async def delete_account(id_list: list, db: Session):
+    naver_accounts = await get_naver_account(db=db, filters=[models.NaverAccount.id.in_(id_list)], fetch_one=False, schema_validate=False)
+    success_delete = []
+    failed_delete = []
+
+    if naver_accounts:
+        for account in naver_accounts:
+            if await delete(model=account, db=db):
+                success_delete.append(account.username)
+            else:
+                failed_delete.append(account.username)
+    else:
+        raise HTTPException(status_code=404, detail="No matching accounts found!")
+    return {"success_delete": success_delete, "failed_delete": failed_delete}
 
 async def fetch_interactions(db: Session):
     return await get_account_interactions(db=db, fetch_one=False)
