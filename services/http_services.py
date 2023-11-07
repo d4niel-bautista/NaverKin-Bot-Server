@@ -189,7 +189,16 @@ async def delete_account(id_list: list, db: Session):
     return {"success_delete": success_delete, "failed_delete": failed_delete}
 
 async def fetch_interactions(db: Session):
-    return await get_account_interactions(db=db, fetch_one=False)
+    interactions = await get_account_interactions(db=db, fetch_one=False)
+    accounts = await get_naver_account(db=db, fetch_one=False)
+    joined_list = []
+    for index, item in enumerate(interactions):
+        item_object = item.model_dump()
+        item_object["levelup_id"] = accounts[index].levelup_id
+        item_object["category"] = "category"
+        item_object["level"] = "level"
+        joined_list.append(item_object)
+    return joined_list
 
 async def generate_form_content(db: Session):
     attempts = 0
