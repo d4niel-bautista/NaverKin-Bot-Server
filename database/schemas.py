@@ -29,12 +29,15 @@ class UserSession(BaseModel):
     class Config:
         from_attributes = True
 
-class AccountInteraction(BaseModel):
+class AccountInteractionBase(BaseModel):
     username: str
     interactions: str
 
     class Config:
         from_attributes = True
+
+class AccountInteraction(AccountInteractionBase):
+    id: int
 
 class BotConfigsBase(BaseModel):
     submit_delay: int
