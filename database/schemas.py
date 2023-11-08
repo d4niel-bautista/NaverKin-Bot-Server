@@ -96,11 +96,11 @@ class QuestionAnswerFormBase(BaseModel):
     question: dict
 
 class QuestionAnswerForm_1Q2A(QuestionAnswerFormBase):
-    answer_advertisement: str
-    answer_exposure: str
+    answer_advertisement: dict
+    answer_exposure: dict
 
 class QuestionAnswerForm_1Q1A(QuestionAnswerFormBase):
-    answer: str
+    answer_advertisement: dict
 
 class PromptConfigs(BaseModel):
     id: int
