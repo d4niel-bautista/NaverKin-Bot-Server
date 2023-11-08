@@ -35,10 +35,10 @@ async def get_user_session(db: Session, filters: list=[], fetch_one: bool=True):
             if fetch_one else\
             list(map(schemas.UserSession.model_validate, db.query(models.UserSession).filter(*filters).all()))
 
-async def get_bot_configs(db: Session, filters: list=[], fetch_one: bool=True):
-    return schemas.BotConfigs.model_validate(db.query(models.BotConfigs).filter(*filters).first())\
+async def get_bot_configs(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.BotConfigs):
+    return schema.model_validate(db.query(models.BotConfigs).filter(*filters).first())\
             if fetch_one else\
-            list(map(schemas.BotConfigs.model_validate, db.query(models.BotConfigs).filter(*filters).all()))
+            list(map(schema.model_validate, db.query(models.BotConfigs).filter(*filters).all()))
 
 async def get_prompt_configs(db: Session, filters: list=[], fetch_one: bool=True):
     return schemas.PromptConfigs.model_validate(db.query(models.PromptConfigs).filter(*filters).first())\

@@ -48,13 +48,10 @@ class BotConfigs(BotConfigsBase):
     class Config:
         from_attributes = True
 
-class BotConfigsStandalone(BotConfigsBase):
+class BotConfigsStandalone(BotConfigs):
     page_refresh: int
     cooldown: int
     max_interactions: int
-
-    class Config:
-        from_attributes = True
 
 class QuestionPost(BaseModel):
     url: str

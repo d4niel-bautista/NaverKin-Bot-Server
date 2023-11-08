@@ -137,3 +137,8 @@ async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpda
     await update(model=models.PromptConfigs, data={"query": prompt_configs_update.question['query'], "prompt": prompt_configs_update.question['prompt'], "prohibited_words": prohibited_words}, filters={"description": "question"}, db=db)
     await update(model=models.PromptConfigs, data={"query": prompt_configs_update.answer_advertisement['query'], "prompt": prompt_configs_update.answer_advertisement['prompt']}, filters={"description": "answer_advertisement"}, db=db)
     return await update(model=models.PromptConfigs, data={"query": prompt_configs_update.answer_exposure['query'], "prompt": prompt_configs_update.answer_exposure['prompt']}, filters={"description": "answer_exposure"}, db=db)
+
+async def fetch_autoanswerbot_configs(db: Session):
+    botconfigs = await get_bot_configs(db=db, filters=[models.BotConfigs.id == 2], schema=schemas.BotConfigsStandalone)
+    prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id > 3], fetch_one=False)
+    return {'botconfigs': botconfigs, 'prompt_configs': prompt_configs}
