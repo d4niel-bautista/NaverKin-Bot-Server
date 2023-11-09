@@ -46,6 +46,10 @@ class HTTPRequestHandler():
         async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpdate, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.update_prompt_configs(prompt_configs_update, db)
         
+        @self.router.patch("/v1/api/autoanswerbot_prompt")
+        async def update_autoanswerbot_prompt(prompt_update: Dict, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
+            return await http_services.update_autoanswerbot_prompt(prompt_update, db)
+        
         @self.router.get("/v1/api/autoanswerbot_configs")
         async def get_autoanswerbot_configs(db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.fetch_autoanswerbot_configs(db)

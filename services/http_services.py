@@ -141,4 +141,9 @@ async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpda
 async def fetch_autoanswerbot_configs(db: Session):
     botconfigs = await get_bot_configs(db=db, filters=[models.BotConfigs.id == 2], schema=schemas.BotConfigsStandalone)
     prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id > 3], fetch_one=False)
-    return {'botconfigs': botconfigs, 'prompt_configs': prompt_configs}
+    levelup_accounts = await get_naver_account(db=db, filters=[models.NaverAccount.levelup_id == 1, models.NaverAccount.status == 0], fetch_one=False)
+    return {'botconfigs': botconfigs, 'prompt_configs': prompt_configs, 'levelup_accounts': levelup_accounts}
+
+async def update_autoanswerbot_prompt(prompt_update: dict, db: Session):
+    prompt_id = prompt_update.pop("id")
+    return await update(model=models.PromptConfigs, data=prompt_update, filters={"id": prompt_id}, db=db)
