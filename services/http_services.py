@@ -151,3 +151,22 @@ async def update_autoanswerbot_configs(update_config: dict, db: Session):
     prompt_update = await update(model=models.PromptConfigs, data=update_config['prompt_configs'], filters={"id": prompt_id}, db=db)
     if botconfigs_update and prompt_update:
         return {'botconfigs': update_config['botconfigs'], 'prompt_configs': update_config['prompt_configs']}
+
+async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
+    levelup_account = autoanswerbot_data.pop('levelup_account')
+    naver_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == levelup_account['id']])
+    if not naver_account:
+        raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
+    botconfigs = autoanswerbot_data.pop('botconfigs')
+    prompt_configs = autoanswerbot_data.pop('prompt_configs')
+
+    await send(recipient="AutoanswerBot", message="START", type="task")
+    await asyncio.sleep(1)
+    await send(recipient='AutoanswerBot', message=naver_account.model_dump(), type="response_data")
+    await asyncio.sleep(1)
+    user_session = await get_user_session(db=db, filters=[models.UserSession.username == naver_account.username])
+    await send(recipient='AutoanswerBot', message=user_session.model_dump(), type="response_data")
+    await asyncio.sleep(1)
+    await send(recipient='AutoanswerBot', message=botconfigs, type="response_data")
+    await asyncio.sleep(5)
+    await send(recipient='AutoanswerBot', message=prompt_configs, type="response_data")
