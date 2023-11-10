@@ -5,5 +5,5 @@ python-dotenv
 pymysql
 python-multipart
 python-jose[cryptography]
-openai
+openai==0.28
 mangum
