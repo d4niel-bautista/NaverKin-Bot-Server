@@ -159,7 +159,7 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
         raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
     botconfigs = autoanswerbot_data.pop('botconfigs')
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
-
+    prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split('\n') if i]
     await send(recipient="AutoanswerBot", message="START", type="task")
     await asyncio.sleep(1)
     await send(recipient='AutoanswerBot', message=naver_account.model_dump(), type="response_data")
