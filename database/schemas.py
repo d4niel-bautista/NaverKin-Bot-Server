@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
 
 class NaverAccountBase(BaseModel):
     username: str
@@ -71,6 +71,7 @@ class AnswerResponse(BaseModel):
     postscript: str
     status: int
     username: str
+    date_answered: datetime
 
     class Config:
         from_attributes = True

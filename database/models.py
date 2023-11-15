@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Date, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Date, Text, DateTime
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -18,12 +18,13 @@ class NaverAccount(Base):
     account_url = Column(String(255), index=True)
     status = Column(Integer, index=True)
     interactions = relationship("AccountInteraction", cascade="all, delete-orphan")
+    user_session = relationship("UserSession", cascade="all, delete-orphan")
 
 class UserSession(Base):
     __tablename__ = "user_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(30), unique=True, index=True)
+    username = Column(String(30), ForeignKey("naver_accounts.username"), unique=True, index=True)
     cookies = Column(Text, index=True, default="")
     user_agent = Column(String(255), index=True, default="")
 
@@ -31,7 +32,7 @@ class AccountInteraction(Base):
     __tablename__ = "account_interactions"
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(30), ForeignKey("naver_accounts.username"), unique=True, index=True, default="")
+    username = Column(String(30), ForeignKey("naver_accounts.username"), unique=True, index=True)
     interactions = Column(Text, index=True)
 
 class BotConfigs(Base):
@@ -60,12 +61,13 @@ class NaverKinAnswerResponse(Base):
     __tablename__ = "naverkin_answer_responses"
 
     id = Column(Integer, primary_key=True, index=True)
-    question_url = Column(String(255), ForeignKey("naverkin_question_posts.url"), index=True, default="")
+    question_url = Column(String(255), index=True, default="")
     type = Column(String(32), index=True, default="")
     content = Column(Text, index=True, default="")
     postscript = Column(Text, index=True, default="")
     status = Column(Integer, index=True, default=0)
     username = Column(String(30), index=True)
+    date_answered = Column(DateTime, index=True)
 
 class AdminLogin(Base):
     __tablename__ = "admin_login"
