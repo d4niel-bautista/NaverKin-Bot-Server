@@ -75,6 +75,17 @@ async def add_account_interactions(account: schemas.NaverAccountCreate, db: Sess
     except:
         db.rollback()
 
+async def add_answer_response(answer: schemas.AnswerResponse, db: Session):
+    answer_response = models.NaverKinAnswerResponse(**answer)
+    db.add(answer_response)
+    try:
+        db.commit()
+        db.refresh(answer_response)
+        return answer_response
+    except Exception as e:
+        print(e)
+        db.rollback()
+
 async def update(model: models.Base, data: dict, filters: dict, db: Session):
     try:
         db.query(model).filter_by(**filters).update(data)

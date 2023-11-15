@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from database import models
 from services.queues import ws_conn_outbound
-from services.services import get_account_interactions, update
+from services.services import get_account_interactions, update, add_answer_response
 
 async def process_incoming_message(client_id, message: dict, db: Session):
     if message["type"] == "notification":
@@ -11,6 +11,8 @@ async def process_incoming_message(client_id, message: dict, db: Session):
         await send(message=response, recipient=client_id, type="message")
     elif message["type"] == "logging":
         print(message["log"])
+    elif message["type"] == "save":
+        await add_answer_response(message["data"], db=db)
 
 async def send(message, type: str, recipient: str, exclude: str=""):
     outbound_msg = {}
@@ -39,6 +41,10 @@ async def process_update_request(table: str, data: dict, filters: dict, db: Sess
             return await update(model=model, data=data, filters=filters, db=db)
     else:
         return "TABLE NOT FOUND!"
+
+async def process_save_request(table: str, data: dict, db: Session):
+    if table == "naverkin_answer_responses":
+        return await add_answer_response(answer=data, db=db)
 
 async def update_account_interactions(data: dict, filters: dict, db: Session):
     sender = await get_account_interactions(db=db, filters=[models.AccountInteraction.username == filters['username']])
