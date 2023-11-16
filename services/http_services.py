@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from pydantic_core import ValidationError
 from sqlalchemy.orm import Session
 from database import schemas, models
-from services.services import add_naver_account, add_account_interactions, add_user_session, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, update, delete
+from services.services import add_naver_account, add_account_interactions, add_user_session, add_category, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, get_categories, update, delete
 from utils import get_string_instances, generate_text
 from services.websocket_services import send
 
@@ -170,3 +170,18 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     await send(recipient='AutoanswerBot', message=botconfigs, type="response_data")
     await asyncio.sleep(5)
     await send(recipient='AutoanswerBot', message=prompt_configs, type="response_data")
+
+async def create_category(category: schemas.CategoryBase, db: Session):
+    existing_category = await get_categories(db=db, filters=[models.Categories.category == category.category], schema_validate=False)
+    if existing_category:
+        raise HTTPException(status_code=403, detail="Same category already exists!")
+    return await add_category(category=category, db=db)
+
+async def fetch_categories(db: Session):
+    categories = await get_categories(db=db, fetch_one=False)
+    return categories
+
+async def update_category(category: schemas.Category, db: Session):
+    existing_category = await get_categories(db=db, filters=[models.Categories.id == category.id])
+    if existing_category:
+        return await update(model=models.Categories, data={"category": category.model_dump()["category"]}, filters={"id": existing_category.model_dump()["id"]}, db=db)

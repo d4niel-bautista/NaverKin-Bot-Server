@@ -45,6 +45,16 @@ async def get_prompt_configs(db: Session, filters: list=[], fetch_one: bool=True
             if fetch_one else\
             list(map(schemas.PromptConfigs.model_validate, db.query(models.PromptConfigs).filter(*filters).all()))
 
+async def get_categories(db: Session, filters: list=[], fetch_one: bool=True, schema_validate: bool=True):
+    if schema_validate:
+        return schemas.Category.model_validate(db.query(models.Categories).filter(*filters).first())\
+                if fetch_one else\
+                list(map(schemas.Category.model_validate, db.query(models.Categories).filter(*filters).order_by(models.Categories.id.asc()).all()))
+    else:
+        return db.query(models.Categories).filter(*filters).first()\
+                if fetch_one else\
+                list(db.query(models.Categories).filter(*filters).order_by(models.Categories.id.asc()).all())
+
 async def add_naver_account(account: schemas.NaverAccountCreate, db: Session):
     naver_account = models.NaverAccount(**account.model_dump())
     db.add(naver_account)
@@ -82,6 +92,17 @@ async def add_answer_response(answer: schemas.AnswerResponse, db: Session):
         db.commit()
         db.refresh(answer_response)
         return answer_response
+    except Exception as e:
+        print(e)
+        db.rollback()
+
+async def add_category(category: schemas.Category, db: Session):
+    category = models.Categories(**category.model_dump())
+    db.add(category)
+    try:
+        db.commit()
+        db.refresh(category)
+        return category
     except Exception as e:
         print(e)
         db.rollback()
