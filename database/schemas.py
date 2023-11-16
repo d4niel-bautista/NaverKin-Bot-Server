@@ -119,3 +119,12 @@ class PromptConfigsUpdate(BaseModel):
     answer_advertisement: dict
     answer_exposure: dict
     prohibited_words: str
+
+class CategoryBase(BaseModel):
+    category: str
+
+    class Config:
+        from_attributes = True
+
+class Category(CategoryBase):
+    id: int

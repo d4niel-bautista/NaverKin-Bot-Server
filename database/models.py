@@ -90,3 +90,9 @@ class PromptConfigs(Base):
     postscript = Column(Text, index=True, default="")
     prohibited_words = Column(Text, index=True, default="")
     openai_api_key = Column(Text, index=True, default="")
+
+class Categories(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String(255), unique=True, index=True, default="")
