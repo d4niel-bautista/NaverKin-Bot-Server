@@ -31,7 +31,7 @@ class HTTPRequestHandler():
             return await http_services.delete_account(id_list, db)
         
         @self.router.get("/v1/api/interactions")
-        async def fetch_accounts(db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
+        async def fetch_interactions(db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.fetch_interactions(db)
 
         @self.router.get("/v1/api/generate_form_content")

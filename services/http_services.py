@@ -96,13 +96,13 @@ async def delete_account(id_list: list, db: Session):
 
 async def fetch_interactions(db: Session):
     interactions = await get_account_interactions(db=db, fetch_one=False)
-    accounts = await get_naver_account(db=db, fetch_one=False)
+    accounts = await get_naver_account(db=db, fetch_one=False, schema=schemas.NaverAccount)
     joined_list = []
     for index, item in enumerate(interactions):
         item_object = item.model_dump()
         item_object["levelup_id"] = accounts[index].levelup_id
-        item_object["category"] = "category"
-        item_object["level"] = "level"
+        item_object["category"] = accounts[index].category
+        item_object["level"] = accounts[index].level
         joined_list.append(item_object)
     return joined_list
 
