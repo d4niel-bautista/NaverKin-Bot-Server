@@ -67,9 +67,17 @@ async def add_account(account: schemas.NaverAccountCreate, db: Session):
 async def fetch_accounts(db: Session):
     return await get_naver_account(db=db, fetch_one=False, schema=schemas.NaverAccount)
 
-async def update_account(updated_account: dict, db: Session):
-    id = updated_account.pop("id")
-    return await update(model=models.NaverAccount, data=updated_account, filters={"id": id}, db=db)
+async def update_account(updated_data: dict, db: Session):
+    id = updated_data.pop("id")
+    updated_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == id], schema_validate=False)
+
+    if not updated_account:
+        raise HTTPException(status_code=404, detail="Account does not exist!")
+    
+    if await update(model=models.NaverAccount, data=updated_data, filters={"id": updated_account.id}, db=db):
+        return {"message": f"Updated [{updated_account.username}] successfully." }
+    else:
+        return {"message": f"Failed to update [{updated_account.username}]." }
 
 async def delete_account(id_list: list, db: Session):
     naver_accounts = await get_naver_account(db=db, filters=[models.NaverAccount.id.in_(id_list)], fetch_one=False, schema_validate=False)
