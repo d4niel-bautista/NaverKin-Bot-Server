@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Date, Text, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Date, Text, DateTime, Boolean
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -9,6 +9,11 @@ class NaverAccount(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(30), unique=True, index=True)
     password = Column(String(30), index=True)
+    level = Column(String(30), index=True, default="")
+    category = Column(Integer, index=True, default=1)
+    registration_date = Column(Date, index=True)
+    verified = Column(Boolean, index=True, default=False)
+    last_login = Column(String(255), index=True, default="")
     recovery_email = Column(String(255), index=True, default="")
     name = Column(String(255), index=True)
     date_of_birth = Column(Date, index=True)
@@ -16,7 +21,7 @@ class NaverAccount(Base):
     mobile_no = Column(String(20), index=True)
     levelup_id = Column(Integer, index=True)
     account_url = Column(String(255), index=True)
-    status = Column(Integer, index=True)
+    status = Column(Integer, index=True, default=0)
     interactions = relationship("AccountInteraction", cascade="all, delete-orphan")
     user_session = relationship("UserSession", cascade="all, delete-orphan")
 

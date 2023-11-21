@@ -20,6 +20,11 @@ class NaverAccountCreate(NaverAccountBase):
 
 class NaverAccount(NaverAccountCreate):
     id: int
+    level: str
+    category: int
+    registration_date: date
+    verified: bool
+    last_login: str
 
 class UserSession(BaseModel):
     username: str
