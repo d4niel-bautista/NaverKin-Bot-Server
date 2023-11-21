@@ -185,3 +185,18 @@ async def update_category(category: schemas.Category, db: Session):
     existing_category = await get_categories(db=db, filters=[models.Categories.id == category.id])
     if existing_category:
         return await update(model=models.Categories, data={"category": category.model_dump()["category"]}, filters={"id": existing_category.model_dump()["id"]}, db=db)
+
+async def delete_category(category_list: list, db: Session):
+    categories = await get_categories(db=db, filters=[models.Categories.id.in_(category_list)], fetch_one=False, schema_validate=False)
+    success_delete = []
+    failed_delete = []
+
+    if categories:
+        for category in categories:
+            if await delete(model=category, db=db):
+                success_delete.append(category.category)
+            else:
+                failed_delete.append(category.category)
+    else:
+        raise HTTPException(status_code=404, detail="No matching categories found!")
+    return {"success_delete": success_delete, "failed_delete": failed_delete}
