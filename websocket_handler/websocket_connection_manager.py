@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from datetime import datetime
-import services.websocket_services as ws_services
+import websocket_handler.websocket_services as ws_services
 from database import database
 from sqlalchemy.orm import Session
 

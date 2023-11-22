@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Union, List, Dict
-import services.http_services as http_services
+import http_handler.http_services as http_services
 from database import schemas, database
 from services.authentication import authenticate_user, create_token, get_current_user
 

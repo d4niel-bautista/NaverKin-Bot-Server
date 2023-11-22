@@ -2,12 +2,13 @@ import asyncio
 import json
 from typing import Union
 from fastapi import HTTPException
-from pydantic_core import ValidationError
 from sqlalchemy.orm import Session
 from database import schemas, models
 from services.services import add_naver_account, add_account_interactions, add_user_session, add_category, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, get_categories, update, delete
-from utils import get_string_instances, generate_text
-from services.websocket_services import send
+from utils import generate_text
+
+async def send(message, type: str, recipient: str, exclude: str=""):
+    pass
 
 async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q2A, schemas.QuestionAnswerForm_1Q1A], db: Session):
     form = form.model_dump()

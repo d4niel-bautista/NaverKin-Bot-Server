@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 from database import models
-from services.queues import ws_conn_outbound
 from services.services import get_account_interactions, update, add_answer_response
 
 async def process_incoming_message(client_id, message: dict, db: Session):
@@ -30,7 +29,7 @@ async def send(message, type: str, recipient: str, exclude: str=""):
     elif type == "message":
         outbound_msg["message"] = {"type": type, "response": message}
     
-    await ws_conn_outbound.put(outbound_msg)
+    # post_to_connection
 
 async def process_update_request(table: str, data: dict, filters: dict, db: Session):
     if table == "account_interactions":

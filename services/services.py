@@ -1,6 +1,5 @@
 from database import models, database, schemas
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
 
 def create_database():
     models.Base.metadata.create_all(bind=database.engine)
