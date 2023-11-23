@@ -1,54 +1,70 @@
-import asyncio
 import json
+import boto3
 from typing import Union
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from database import schemas, models
 from services.services import add_naver_account, add_account_interactions, add_user_session, add_category, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, get_categories, update, delete
 from utils import generate_text
+from dotenv import load_dotenv
+load_dotenv()
+import os
+
+WEBSOCKET_HANDLER_ARN = os.getenv("WEBSOCKET_HANDLER_ARN")
+client = boto3.client('lambda', region_name='ap-southeast-1')
 
 async def send(message, type: str, recipient: str, exclude: str=""):
-    pass
+    outbound_msg = {'invokedRouteKey': 'sendMessage'}
+    if not recipient == "all":
+        outbound_msg["recipient"] = recipient
+    else:
+        outbound_msg["recipient"] = "all"
+        outbound_msg["exclude"] = exclude
+    
+    if type == "task":
+        outbound_msg["message"] = {"type": type, "message": message}
+    elif type == "response_data":
+        outbound_msg["message"] = {"type": type, "data": message}
+    elif type == "message":
+        outbound_msg["message"] = {"type": type, "response": message}
+    
+    await invoke(payload=outbound_msg)
+
+async def invoke(payload):
+    client.invoke(FunctionName=WEBSOCKET_HANDLER_ARN, InvocationType='Event', Payload=json.dumps(payload))
 
 async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q2A, schemas.QuestionAnswerForm_1Q1A], db: Session):
     form = form.model_dump()
     await send(recipient="all", message="START", type="task")
-    await asyncio.sleep(1)
     botclients = await setup_bot_clients(form, db)
 
     if len(form) == 2:
-        await send(recipient="QuestionBot", message={"question": form['question']['content']}, type="response_data")
-        await asyncio.sleep(1)
-        await send(recipient="AnswerBot_Advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data")
-        await asyncio.sleep(1)
+        await send(recipient="questionbot", message={"question": form['question']['content']}, type="response_data")
+        await send(recipient="answerbot_advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data")
 
-        await send(recipient="QuestionBot", message="1Q1A", type="response_data")
+        await send(recipient="questionbot", message="1Q1A", type="response_data")
     elif len(form) == 3:
-        await send(recipient="QuestionBot", message={"question": form['question']['content']}, type="response_data")
-        await asyncio.sleep(1)
-        await send(recipient="AnswerBot_Advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data")
-        await asyncio.sleep(1)
-        await send(recipient="AnswerBot_Exposure", message={"answer_exposure": form['answer_exposure']['content']}, type="response_data")
-        await asyncio.sleep(1)
+        await send(recipient="questionbot", message={"question": form['question']['content']}, type="response_data")
+        await send(recipient="answerbot_advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data")
+        await send(recipient="answerbot_exposure", message={"answer_exposure": form['answer_exposure']['content']}, type="response_data")
 
-        await send(recipient="QuestionBot", message="1Q2A", type="response_data")
+        await send(recipient="questionbot", message="1Q2A", type="response_data")
     return {"message": "Form received and started automation.", 'bot_clients': botclients}
 
 async def setup_bot_clients(form: dict, db: Session):
-    client_address = {'question': 'QuestionBot', 'answer_advertisement': 'AnswerBot_Advertisement', 'answer_exposure': 'AnswerBot_Exposure'}
+    client_address = {'question': 'questionbot', 'answer_advertisement': 'answerbot_advertisement', 'answer_exposure': 'answerbot_exposure'}
     botclients = {}
     for k, v in form.items():
         account = await get_naver_account(db=db, filters=[models.NaverAccount.status == 0, models.NaverAccount.id == v['id']])
         await send(recipient=client_address[k], message=account.model_dump(), type="response_data")
-        await asyncio.sleep(1)
+
         user_session = await get_user_session(db=db, filters=[models.UserSession.username == account.username])
         await send(recipient=client_address[k], message=user_session.model_dump(), type="response_data")
-        await asyncio.sleep(1)
+
         botclients[k] = account.username
     
     botconfigs = await get_bot_configs(db=db, filters=[models.BotConfigs.id == 1])
     await send(recipient="all", message=botconfigs.model_dump(), type="response_data")
-    await asyncio.sleep(1)
     return botclients
 
 async def add_account(account: schemas.NaverAccountCreate, db: Session):
@@ -119,7 +135,6 @@ async def generate_form_content(db: Session):
             question_content = json.loads(question_content)
             if type(question_content) is dict and len(question_content) == 2:
                 break
-            await asyncio.sleep(1)
             attempts += 1
         except Exception as e:
             print(e)
@@ -164,21 +179,21 @@ async def update_autoanswerbot_configs(update_config: dict, db: Session):
 async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     levelup_account = autoanswerbot_data.pop('levelup_account')
     naver_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == levelup_account['id']])
+
     if not naver_account:
         raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
+    
     botconfigs = autoanswerbot_data.pop('botconfigs')
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
     prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split('\n') if i]
-    await send(recipient="AutoanswerBot", message="START", type="task")
-    await asyncio.sleep(1)
-    await send(recipient='AutoanswerBot', message=naver_account.model_dump(), type="response_data")
-    await asyncio.sleep(1)
+
+    await send(recipient="autoanswerbot", message="START", type="task")
+    await send(recipient='autoanswerbot', message=naver_account.model_dump(), type="response_data")
+
     user_session = await get_user_session(db=db, filters=[models.UserSession.username == naver_account.username])
-    await send(recipient='AutoanswerBot', message=user_session.model_dump(), type="response_data")
-    await asyncio.sleep(1)
-    await send(recipient='AutoanswerBot', message=botconfigs, type="response_data")
-    await asyncio.sleep(5)
-    await send(recipient='AutoanswerBot', message=prompt_configs, type="response_data")
+    await send(recipient='autoanswerbot', message=user_session.model_dump(), type="response_data")
+    await send(recipient='autoanswerbot', message=botconfigs, type="response_data")
+    await send(recipient='autoanswerbot', message=prompt_configs, type="response_data")
 
 async def create_category(category: schemas.CategoryBase, db: Session):
     existing_category = await get_categories(db=db, filters=[models.Categories.category == category.category], schema_validate=False)

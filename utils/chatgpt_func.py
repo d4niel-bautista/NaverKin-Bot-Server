@@ -24,7 +24,6 @@ async def generate_text(query: str, prompt: str, prohibited_words: list = []):
             if not detected_prohib_words:
                 return response_message
             else:
-                await asyncio.sleep(1)
                 attempts += 1
     except Exception as e:
         print(e)
