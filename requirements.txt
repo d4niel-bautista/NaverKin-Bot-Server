@@ -1,3 +1,4 @@
+urllib3<2
 fastapi
 uvicorn
 sqlalchemy
@@ -7,3 +8,4 @@ python-multipart
 python-jose[cryptography]
 openai==0.28
 mangum
+boto3
