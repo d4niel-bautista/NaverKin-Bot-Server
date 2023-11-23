@@ -17,14 +17,14 @@ class NaverAccountCreate(NaverAccountBase):
     date_of_birth: date
     gender: str
     mobile_no: str
+    registration_date: date
+    level: str
+    category: int
+    verified: bool
+    last_login: str
 
 class NaverAccount(NaverAccountCreate):
     id: int
-    level: str
-    category: int
-    registration_date: date
-    verified: bool
-    last_login: str
 
 class UserSession(BaseModel):
     username: str

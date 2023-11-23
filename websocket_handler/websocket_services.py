@@ -1,19 +1,33 @@
-from sqlalchemy.orm import Session
 from database import models
+from database.database import Session
 from services.services import get_account_interactions, update, add_answer_response
+import boto3
+import json
+from dotenv import load_dotenv
+load_dotenv()
+import os
 
-async def process_incoming_message(client_id, message: dict, db: Session):
+ENDPOINT_URL = os.getenv("ENDPOINT_URL")
+client = boto3.client('apigatewaymanagementapi', region_name='ap-southeast-1', endpoint_url=ENDPOINT_URL)
+
+async def process_incoming_message(client_id, message: dict):
     if message["type"] == "notification":
-        await send(message=message['data'], recipient=message["send_to"], type="response_data")
+        outbound_msg = await create_outbound_message(message=message['data'], recipient=message["send_to"], type="response_data")
+        response = await send_message(outbound_msg)
     elif message["type"] == "update":
-        response = await process_update_request(table=message['table'], data=message['data'], filters=message['filters'], db=db)
-        await send(message=response, recipient=client_id, type="message")
+        update_result = await process_update_request(table=message['table'], data=message['data'], filters=message['filters'], db=Session())
+        outbound_msg = await create_outbound_message(message=update_result, recipient=client_id, type="message")
+        response = await send_message(outbound_msg)
     elif message["type"] == "logging":
         print(message["log"])
+        response = {"statusCode": 200}
     elif message["type"] == "save":
-        await add_answer_response(message["data"], db=db)
+        await add_answer_response(message["data"], db=Session())
+        response = {"statusCode": 200}
+    
+    return response
 
-async def send(message, type: str, recipient: str, exclude: str=""):
+async def create_outbound_message(message, type: str, recipient: str, exclude: str=""):
     outbound_msg = {}
 
     if not recipient == "all":
@@ -29,7 +43,37 @@ async def send(message, type: str, recipient: str, exclude: str=""):
     elif type == "message":
         outbound_msg["message"] = {"type": type, "response": message}
     
-    # post_to_connection
+    return outbound_msg
+
+async def send_message(outbound_msg):
+    if outbound_msg["recipient"] == "all":
+        response = await broadcast(exclude=outbound_msg["exclude"], message=outbound_msg["message"])
+    else:
+        response = await send_to_client(recipient=outbound_msg["recipient"], message=outbound_msg["message"])
+    return response
+
+async def broadcast(message, exclude: str=""):
+    with Session() as db:
+        bot_connections = db.query(models.BotConnections).filter(models.BotConnections.id == 1).first()
+    for key, value in bot_connections.__dict__.items():
+        if key.startswith("_") or key in exclude or key == "id":
+            continue
+        if value == "" or value is None:
+            continue
+        await send_to_client(recipient=key, message=message, connection_id=value)
+    return {"statusCode": 200}
+
+async def send_to_client(message, recipient: str, connection_id: str=""):
+    if not connection_id:
+        with Session() as db:
+            bot_connections = db.query(models.BotConnections).filter(models.BotConnections.id == 1).first()
+        connection_id = getattr(bot_connections, recipient)
+
+    if connection_id:
+        client.post_to_connection(ConnectionId=connection_id, Data=json.dumps(message).encode('utf-8'))
+        return {"statusCode": 200}
+    else:
+        return {"statusCode": 404, "body": f"No {recipient} currently connected!"}
 
 async def process_update_request(table: str, data: dict, filters: dict, db: Session):
     if table == "account_interactions":
