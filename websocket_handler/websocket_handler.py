@@ -2,6 +2,7 @@ from websocket_services import send_message, process_incoming_message
 from database.models import BotConnections
 from database.database import Session
 import asyncio
+import json
 
 def websocket_handler(event, context):
     route_key = (
@@ -12,6 +13,8 @@ def websocket_handler(event, context):
         else None
     )
 
+    body = json.loads(event.pop("body", "{}"))
+
     if route_key == "$connect":
         response = handle_connection(connection_id=event['requestContext']['connectionId'], bot_client=event['queryStringParameters']['bot'])
     elif route_key == "$disconnect":
@@ -19,10 +22,10 @@ def websocket_handler(event, context):
     elif route_key == "sendMessage":
         response = asyncio.run(send_message(outbound_msg=event))
     elif route_key == "processMessage":
-        if event["client_id"]:
-            response = asyncio.run(process_incoming_message(client_id=event["client_id"], message=event))
+        if check_matching_connection_id(connection_id=event["requestContext"]["connectionId"], bot_client=body["client_id"]):
+            response = asyncio.run(process_incoming_message(client_id=body["client_id"], message=body))
         else:
-            response = {"statusCode": 403, "body": f'Invalid client ID!'}
+            response = {"statusCode": 403, "body": f'Invalid connection ID!'}
     else:
         response = {"statusCode": 404, "body": "No matching routeKey found!"}
     
@@ -57,3 +60,10 @@ def handle_disconnection(connection_id: str):
         return {"statusCode": 200}
     else:
         return {"statusCode": 404, "body": f'No matching connection ID found!'}
+
+def check_matching_connection_id(connection_id: str, bot_client: str):
+    with Session() as db:
+        bot_connections = db.query(BotConnections).filter(BotConnections.id == 1).first()
+    current_connection_id = getattr(bot_connections, bot_client)
+
+    return True if current_connection_id == connection_id else False
