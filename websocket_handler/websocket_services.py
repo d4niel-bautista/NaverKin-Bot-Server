@@ -1,6 +1,7 @@
-from database import models
+from database import models, schemas
 from database.database import Session
 from services.services import get_account_interactions, update, add_answer_response
+from utils import convert_date
 import boto3
 import json
 from dotenv import load_dotenv
@@ -21,6 +22,8 @@ async def process_incoming_message(client_id, message: dict):
     elif message["type"] == "logging":
         print(message["log"])
         response = {"statusCode": 200}
+    elif message["type"] == "get":
+        response = await process_get_request(table=message['table'], filters=message['filters'], client_id=client_id)
     elif message["type"] == "save":
         await add_answer_response(message["data"], db=Session())
         response = {"statusCode": 200}
@@ -88,6 +91,27 @@ async def process_update_request(table: str, data: dict, filters: dict, db: Sess
 async def process_save_request(table: str, data: dict, db: Session):
     if table == "naverkin_answer_responses":
         return await add_answer_response(answer=data, db=db)
+
+async def process_get_request(table: str, filters: dict, client_id: str):
+    if table == "naverkin_answer_responses":
+        response = await get_answer_response(filters=filters, client_id=client_id)
+    
+    return response
+
+async def get_answer_response(filters: dict, client_id: str):
+    results = None
+    with Session() as db:
+        results = db.query(models.NaverKinAnswerResponse).filter_by(**filters).first()
+    
+    if results:
+        answer_response = schemas.AnswerResponse.model_validate(results)
+        answer_response = convert_date(answer_response.model_dump())
+        outbound_message = await create_outbound_message(message=answer_response, type="response_data", recipient=client_id)
+        await send_to_client(message=outbound_message['message'], recipient=client_id)
+        return {"statusCode": 200}
+    else:
+        await send_to_client(message=None, recipient=client_id)
+        return {"statusCode": 404, "body": f"No matches found!"}
 
 async def update_account_interactions(data: dict, filters: dict, db: Session):
     sender = await get_account_interactions(db=db, filters=[models.AccountInteraction.username == filters['username']])
