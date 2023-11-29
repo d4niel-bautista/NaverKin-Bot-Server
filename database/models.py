@@ -50,6 +50,14 @@ class BotConfigs(Base):
     cooldown = Column(Integer, index=True, default=86400)
     max_interactions = Column(Integer, index=True, default=1)
 
+class Login(Base):
+    __tablename__ = "logins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(30), index=True)
+    ip_address = Column(String(30), index=True)
+    login_timestamp = Column(DateTime, index=True)
+
 class NaverKinQuestionPost(Base):
     __tablename__ = "naverkin_question_posts"
 
@@ -58,9 +66,8 @@ class NaverKinQuestionPost(Base):
     title = Column(Text, index=True, default="")
     status = Column(Integer, index=True, default=0)
     author = Column(String(30), index=True, default="")
-    respondent_id = Column(String(30), ForeignKey("naver_accounts.username"), index=True, default="")
-
-    respondent = relationship("NaverAccount", uselist=False)
+    respondent = Column(String(30), index=True)
+    date_posted = Column(DateTime, index=True)
 
 class NaverKinAnswerResponse(Base):
     __tablename__ = "naverkin_answer_responses"

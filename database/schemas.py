@@ -59,17 +59,20 @@ class BotConfigsStandalone(BotConfigs):
     cooldown: int
     max_interactions: int
 
-class QuestionPost(BaseModel):
+class QuestionPostCreate(BaseModel):
     url: str
     title: str
     status: int
     author: str
-    respondent: NaverAccountBase
+    respondent: str
 
     class Config:
         from_attributes = True
 
-class AnswerResponse(BaseModel):
+class QuestionPost(QuestionPostCreate):
+    id: int
+
+class AnswerResponseCreate(BaseModel):
     question_url: str
     type: str
     content: str
@@ -80,6 +83,9 @@ class AnswerResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class AnswerResponse(AnswerResponseCreate):
+    id: int
 
 class AdminBase(BaseModel):
     username: str
@@ -132,4 +138,15 @@ class CategoryBase(BaseModel):
         from_attributes = True
 
 class Category(CategoryBase):
+    id: int
+
+class LoginCreate(BaseModel):
+    username: str
+    ip_address: str
+    login_timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+class Login(LoginCreate):
     id: int
