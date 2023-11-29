@@ -4,7 +4,7 @@ from typing import Union
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from database import schemas, models
-from services.services import add_naver_account, add_account_interactions, add_user_session, add_category, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, get_categories, update, delete
+from services.services import add_naver_account, add_account_interactions, add_user_session, add_category, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, get_categories, get_logins, get_answer_response, get_question_post, update, delete
 from utils import generate_text
 from dotenv import load_dotenv
 load_dotenv()
@@ -224,3 +224,10 @@ async def delete_category(category_list: list, db: Session):
     else:
         raise HTTPException(status_code=404, detail="No matching categories found!")
     return {"success_delete": success_delete, "failed_delete": failed_delete}
+
+async def fetch_activities(db: Session):
+    answer_responses = await get_answer_response(db=db, fetch_one=False, schema_validate=False)
+    question_posts = await get_question_post(db=db, fetch_one=False, schema_validate=False)
+    logins = await get_logins(db=db, fetch_one=False, schema_validate=False)
+
+    return {"logins": logins, "question_posts": question_posts, "answer_responses": answer_responses}

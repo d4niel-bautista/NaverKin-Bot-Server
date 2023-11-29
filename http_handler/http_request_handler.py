@@ -74,6 +74,10 @@ class HTTPRequestHandler():
         async def delete_category(category_list: List[int], db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.delete_category(category_list, db)
         
+        @self.router.get("/v1/api/activities")
+        async def get_activities(db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
+            return await http_services.fetch_activities(db)
+        
         @self.router.post("/v1/api/token")
         async def generate_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db_conn)):
             user = await authenticate_user(form_data.username, form_data.password, db)

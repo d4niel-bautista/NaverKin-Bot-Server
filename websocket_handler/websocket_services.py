@@ -1,6 +1,6 @@
 from database import models, schemas
 from database.database import Session
-from services.services import get_account_interactions, update, add_answer_response
+from services.services import get_account_interactions, update, add_answer_response, add_question_post, add_login
 from utils import convert_date
 import boto3
 import json
@@ -25,8 +25,7 @@ async def process_incoming_message(client_id, message: dict):
     elif message["type"] == "get":
         response = await process_get_request(table=message['table'], filters=message['filters'], client_id=client_id)
     elif message["type"] == "save":
-        await add_answer_response(message["data"], db=Session())
-        response = {"statusCode": 200}
+        response = await process_save_request(table=message['table'], data=message['data'], db=Session())
     
     return response
 
@@ -89,10 +88,21 @@ async def process_update_request(table: str, data: dict, filters: dict, db: Sess
         return "TABLE NOT FOUND!"
 
 async def process_save_request(table: str, data: dict, db: Session):
+    result = None
     if table == "naverkin_answer_responses":
-        return await add_answer_response(answer=data, db=db)
+        result = await add_answer_response(answer=data, db=db)
+    elif table == "naverkin_question_posts":
+        result = await add_question_post(question=data, db=db)
+    elif table == "logins":
+        result = await add_login(login=data, db=db)
+    
+    if result:
+        return {"statusCode": 200}
+    else:
+        return {"statusCode": 502, "body": f"Server error when saving!"}
 
 async def process_get_request(table: str, filters: dict, client_id: str):
+    response = {"statusCode": 404, "body": f"No matches found!"}
     if table == "naverkin_answer_responses":
         response = await get_answer_response(filters=filters, client_id=client_id)
     

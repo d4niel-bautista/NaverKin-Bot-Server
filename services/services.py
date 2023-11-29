@@ -54,6 +54,36 @@ async def get_categories(db: Session, filters: list=[], fetch_one: bool=True, sc
                 if fetch_one else\
                 list(db.query(models.Categories).filter(*filters).order_by(models.Categories.id.asc()).all())
 
+async def get_answer_response(db: Session, filters: list=[], fetch_one: bool=True, schema_validate: bool=True):
+    if schema_validate:
+        return schemas.AnswerResponse.model_validate(db.query(models.NaverKinAnswerResponse).filter(*filters).first())\
+                if fetch_one else\
+                list(map(schemas.AnswerResponse.model_validate, db.query(models.NaverKinAnswerResponse).filter(*filters).order_by(models.NaverKinAnswerResponse.id.asc()).all()))
+    else:
+        return db.query(models.NaverKinAnswerResponse).filter(*filters).first()\
+                if fetch_one else\
+                list(db.query(models.NaverKinAnswerResponse).filter(*filters).order_by(models.NaverKinAnswerResponse.id.asc()).all())
+
+async def get_question_post(db: Session, filters: list=[], fetch_one: bool=True, schema_validate: bool=True):
+    if schema_validate:
+        return schemas.QuestionPost.model_validate(db.query(models.NaverKinQuestionPost).filter(*filters).first())\
+                if fetch_one else\
+                list(map(schemas.QuestionPost.model_validate, db.query(models.NaverKinQuestionPost).filter(*filters).order_by(models.NaverKinQuestionPost.id.asc()).all()))
+    else:
+        return db.query(models.NaverKinQuestionPost).filter(*filters).first()\
+                if fetch_one else\
+                list(db.query(models.NaverKinQuestionPost).filter(*filters).order_by(models.NaverKinQuestionPost.id.asc()).all())
+
+async def get_logins(db: Session, filters: list=[], fetch_one: bool=True, schema_validate: bool=True):
+    if schema_validate:
+        return schemas.Login.model_validate(db.query(models.Login).filter(*filters).first())\
+                if fetch_one else\
+                list(map(schemas.Login.model_validate, db.query(models.Login).filter(*filters).order_by(models.Login.id.asc()).all()))
+    else:
+        return db.query(models.Login).filter(*filters).first()\
+                if fetch_one else\
+                list(db.query(models.Login).filter(*filters).order_by(models.Login.id.asc()).all())
+
 async def add_naver_account(account: schemas.NaverAccountCreate, db: Session):
     naver_account = models.NaverAccount(**account.model_dump())
     db.add(naver_account)
@@ -84,13 +114,35 @@ async def add_account_interactions(account: schemas.NaverAccountCreate, db: Sess
     except:
         db.rollback()
 
-async def add_answer_response(answer: schemas.AnswerResponse, db: Session):
+async def add_answer_response(answer: schemas.AnswerResponseCreate, db: Session):
     answer_response = models.NaverKinAnswerResponse(**answer)
     db.add(answer_response)
     try:
         db.commit()
         db.refresh(answer_response)
         return answer_response
+    except Exception as e:
+        print(e)
+        db.rollback()
+
+async def add_question_post(question: schemas.QuestionPostCreate, db: Session):
+    question_post = models.NaverKinQuestionPost(**question)
+    db.add(question_post)
+    try:
+        db.commit()
+        db.refresh(question_post)
+        return question_post
+    except Exception as e:
+        print(e)
+        db.rollback()
+
+async def add_login(login: schemas.LoginCreate, db: Session):
+    login = models.Login(**login)
+    db.add(login)
+    try:
+        db.commit()
+        db.refresh(login)
+        return login
     except Exception as e:
         print(e)
         db.rollback()
