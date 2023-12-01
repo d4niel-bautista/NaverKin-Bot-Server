@@ -116,4 +116,3 @@ class BotConnections(Base):
     questionbot = Column(String(255), unique=True, index=True)
     answerbot_advertisement = Column(String(255), unique=True, index=True)
     answerbot_exposure = Column(String(255), unique=True, index=True)
-    autoanswerbot = Column(String(255), unique=True, index=True)

@@ -7,11 +7,13 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 import os
+from boto3.dynamodb.conditions import Attr
 
 ENDPOINT_URL = os.getenv("ENDPOINT_URL")
 client = boto3.client('apigatewaymanagementapi', region_name='ap-southeast-1', endpoint_url=ENDPOINT_URL)
+dynamodb = boto3.resource('dynamodb')
 
-async def process_incoming_message(client_id, message: dict):
+async def process_incoming_message(client_id, message: dict, connection_id: str=""):
     if message["type"] == "notification":
         outbound_msg = await create_outbound_message(message=message['data'], recipient=message["send_to"], type="response_data")
         response = await send_message(outbound_msg)
@@ -26,6 +28,8 @@ async def process_incoming_message(client_id, message: dict):
         response = await process_get_request(table=message['table'], filters=message['filters'], client_id=client_id)
     elif message["type"] == "save":
         response = await process_save_request(table=message['table'], data=message['data'], db=Session())
+    elif message["type"] == "update_state":
+        response = await process_update_state(client_id=client_id, connection_id=connection_id, state=message["update_state"])
     
     return response
 
@@ -67,15 +71,57 @@ async def broadcast(message, exclude: str=""):
 
 async def send_to_client(message, recipient: str, connection_id: str=""):
     if not connection_id:
-        with Session() as db:
-            bot_connections = db.query(models.BotConnections).filter(models.BotConnections.id == 1).first()
-        connection_id = getattr(bot_connections, recipient)
+        if recipient == "autoanswerbot":
+            connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+
+            is_active = 0 if message["type"] == "task" and message["message"] == "START"  else 1
+
+            result = connections.scan(FilterExpression=Attr('autoanswerbot').exists() & Attr('is_active').eq(is_active))
+            if result["Items"]:
+                result = result["Items"][0]
+                connection_id = result["autoanswerbot"]
+
+                if not is_active:
+                    connections.update_item(
+                        Key={
+                            'group_id': result["group_id"],
+                            'group_type': result["group_type"]
+                        },
+                        UpdateExpression='SET is_active = :val1',
+                        ExpressionAttributeValues={
+                            ':val1': 1
+                        }
+                    )
+        else:
+            with Session() as db:
+                bot_connections = db.query(models.BotConnections).filter(models.BotConnections.id == 1).first()
+            connection_id = getattr(bot_connections, recipient)
 
     if connection_id:
         client.post_to_connection(ConnectionId=connection_id, Data=json.dumps(message).encode('utf-8'))
         return {"statusCode": 200}
     else:
         return {"statusCode": 404, "body": f"No {recipient} currently connected!"}
+
+async def process_update_state(client_id: str, connection_id: str, state: int):
+    if client_id == "autoanswerbot":
+        connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+        result = connections.scan(FilterExpression=Attr('autoanswerbot').eq(connection_id))
+        if result["Items"]:
+            result = result["Items"][0]
+
+            connections.update_item(
+                Key={
+                    'group_id': result["group_id"],
+                    'group_type': result["group_type"]
+                },
+                UpdateExpression='SET is_active = :val1',
+                ExpressionAttributeValues={
+                    ':val1': state
+                }
+            )
+            return {"statusCode": 200}
+    return {"statusCode": 404, "body": f"No {client_id} currently connected!"}
 
 async def process_update_request(table: str, data: dict, filters: dict, db: Session):
     if table == "account_interactions":
