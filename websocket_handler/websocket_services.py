@@ -7,7 +7,7 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 import os
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Attr, Key
 
 ENDPOINT_URL = os.getenv("ENDPOINT_URL")
 client = boto3.client('apigatewaymanagementapi', region_name='ap-southeast-1', endpoint_url=ENDPOINT_URL)
@@ -25,12 +25,20 @@ async def process_incoming_message(client_id, message: dict, connection_id: str=
         print(message["log"])
         response = {"statusCode": 200}
     elif message["type"] == "get":
-        response = await process_get_request(table=message['table'], filters=message['filters'], client_id=client_id)
+        response = await process_get_request(table=message['table'], filters=message['filters'], client_id=client_id, connection_id=connection_id)
     elif message["type"] == "save":
         response = await process_save_request(table=message['table'], data=message['data'], db=Session())
     elif message["type"] == "update_state":
         response = await process_update_state(client_id=client_id, connection_id=connection_id, state=message["update_state"])
-    
+    elif message["type"] == "get_connection_info":
+        connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+        result = connections.query(IndexName="connection_id-client_id-index", 
+                                KeyConditionExpression=Key("connection_id").eq(connection_id))
+        result = result["Items"]
+        if result:
+            response = await send_to_client(message={"connection_info": {"group_id": result[0]["group_id"], "connection_id": result[0]["connection_id"]}}, recipient=message["client_id"], connection_id=result[0]["connection_id"])
+        else:
+            return {"statusCode": 404, "body": f"No matching connection ID!"}
     return response
 
 async def create_outbound_message(message, type: str, recipient: str, exclude: str=""):
@@ -76,20 +84,20 @@ async def send_to_client(message, recipient: str, connection_id: str=""):
 
             is_active = 0 if message["type"] == "task" and message["message"] == "START"  else 1
 
-            result = connections.scan(FilterExpression=Attr('autoanswerbot').exists() & Attr('is_active').eq(is_active))
-            if result["Items"]:
-                result = result["Items"][0]
-                connection_id = result["autoanswerbot"]
+            result = connections.scan(FilterExpression=Attr('client_id').eq("autoanswerbot") & Attr('is_active').eq(is_active))
+            result = result["Items"]
+            if result:
+                connection_id = result[0]["connection_id"]
 
                 if not is_active:
                     connections.update_item(
                         Key={
-                            'group_id': result["group_id"],
-                            'group_type': result["group_type"]
+                            'group_id': result[0]["group_id"],
+                            'client_id': result[0]["client_id"]
                         },
-                        UpdateExpression='SET is_active = :val1',
+                        UpdateExpression='SET is_active = :is_active',
                         ExpressionAttributeValues={
-                            ':val1': 1
+                            ':is_active': 1
                         }
                     )
         else:
@@ -106,18 +114,18 @@ async def send_to_client(message, recipient: str, connection_id: str=""):
 async def process_update_state(client_id: str, connection_id: str, state: int):
     if client_id == "autoanswerbot":
         connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
-        result = connections.scan(FilterExpression=Attr('autoanswerbot').eq(connection_id))
-        if result["Items"]:
-            result = result["Items"][0]
-
+        result = connections.query(IndexName="connection_id-client_id-index", 
+                                KeyConditionExpression=Key("connection_id").eq(connection_id))
+        result = result["Items"]
+        if result:
             connections.update_item(
                 Key={
-                    'group_id': result["group_id"],
-                    'group_type': result["group_type"]
+                    'group_id': result[0]["group_id"],
+                    'client_id': result[0]["client_id"]
                 },
-                UpdateExpression='SET is_active = :val1',
+                UpdateExpression='SET is_active = :is_active',
                 ExpressionAttributeValues={
-                    ':val1': state
+                    ':is_active': state
                 }
             )
             return {"statusCode": 200}
@@ -147,14 +155,14 @@ async def process_save_request(table: str, data: dict, db: Session):
     else:
         return {"statusCode": 502, "body": f"Server error when saving!"}
 
-async def process_get_request(table: str, filters: dict, client_id: str):
+async def process_get_request(table: str, filters: dict, client_id: str, connection_id: str):
     response = {"statusCode": 404, "body": f"No matches found!"}
     if table == "naverkin_answer_responses":
-        response = await get_answer_response(filters=filters, client_id=client_id)
+        response = await get_answer_response(filters=filters, client_id=client_id, connection_id=connection_id)
     
     return response
 
-async def get_answer_response(filters: dict, client_id: str):
+async def get_answer_response(filters: dict, client_id: str, connection_id: str):
     results = None
     with Session() as db:
         results = db.query(models.NaverKinAnswerResponse).filter_by(**filters).first()
@@ -163,10 +171,10 @@ async def get_answer_response(filters: dict, client_id: str):
         answer_response = schemas.AnswerResponse.model_validate(results)
         answer_response = convert_date(answer_response.model_dump())
         outbound_message = await create_outbound_message(message=answer_response, type="response_data", recipient=client_id)
-        await send_to_client(message=outbound_message['message'], recipient=client_id)
+        await send_to_client(message=outbound_message['message'], recipient=client_id, connection_id=connection_id)
         return {"statusCode": 200}
     else:
-        await send_to_client(message=None, recipient=client_id)
+        await send_to_client(message=None, recipient=client_id, connection_id=connection_id)
         return {"statusCode": 404, "body": f"No matches found!"}
 
 async def update_account_interactions(data: dict, filters: dict, db: Session):
