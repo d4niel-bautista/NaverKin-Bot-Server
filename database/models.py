@@ -46,7 +46,7 @@ class BotConfigs(Base):
     id = Column(Integer, primary_key=True, index=True)
     submit_delay = Column(Integer, index=True, default=600)
     page_refresh = Column(Integer, index=True, default=600)
-    answers_per_day = Column(Integer, index=True, default=20)
+    answers_per_day = Column(String(10), index=True, default=20)
     cooldown = Column(Integer, index=True, default=86400)
     max_interactions = Column(Integer, index=True, default=1)
 

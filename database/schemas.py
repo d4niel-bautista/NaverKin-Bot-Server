@@ -55,7 +55,7 @@ class BotConfigs(BotConfigsBase):
 
 class BotConfigsStandalone(BotConfigs):
     page_refresh: int
-    answers_per_day: int
+    answers_per_day: str
     cooldown: int
     max_interactions: int
 
