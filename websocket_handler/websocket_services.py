@@ -61,23 +61,26 @@ async def create_outbound_message(message, type: str, recipient: str, exclude: s
 
 async def send_message(outbound_msg):
     if outbound_msg["recipient"] == "all":
-        response = await broadcast(exclude=outbound_msg["exclude"], message=outbound_msg["message"])
+        response = await broadcast(exclude=outbound_msg["exclude"], message=outbound_msg["message"], group_id=outbound_msg["group_id"])
     else:
-        response = await send_to_client(recipient=outbound_msg["recipient"], message=outbound_msg["message"])
+        response = await send_to_client(recipient=outbound_msg["recipient"], message=outbound_msg["message"], connection_id=outbound_msg["connection_id"])
     return response
 
-async def broadcast(message, exclude: str=""):
-    with Session() as db:
-        bot_connections = db.query(models.BotConnections).filter(models.BotConnections.id == 1).first()
-    for key, value in bot_connections.__dict__.items():
-        if key.startswith("_") or key in exclude or key == "id":
-            continue
-        if value == "" or value is None:
-            continue
-        await send_to_client(recipient=key, message=message, connection_id=value)
-    return {"statusCode": 200}
+async def broadcast(message, exclude: str="", group_id: str=""):
+    connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+    result = connections.query(KeyConditionExpression=Key("group_id").eq(group_id))
+    result = result["Items"]
+    if result:
+        for i in result:
+            if i["connection_id"] == "X":
+                continue
 
-async def send_to_client(message, recipient: str, connection_id: str=""):
+            await send_to_client(recipient=i["client_id"], message=message, connection_id=i["connection_id"])
+        return {"statusCode": 200}
+    else:
+        return {"statusCode": 404, "body": f"No matching group ID!"}
+
+async def send_to_client(message, recipient: str, connection_id: str="", group_id: str=""):
     if not connection_id:
         if recipient == "autoanswerbot":
             connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])

@@ -1,5 +1,8 @@
 import json
 import boto3
+from boto3.dynamodb.conditions import Attr
+import random
+from itertools import groupby
 from typing import Union
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -12,14 +15,18 @@ import os
 
 WEBSOCKET_HANDLER_ARN = os.getenv("WEBSOCKET_HANDLER_ARN")
 client = boto3.client('lambda', region_name='ap-southeast-1')
+dynamodb = boto3.resource('dynamodb')
 
-async def send(message, type: str, recipient: str, exclude: str=""):
+async def send(message, type: str, recipient: str, exclude: str="", group_id: str="", connection_id: str=""):
     outbound_msg = {'invokedRouteKey': 'sendMessage'}
     if not recipient == "all":
         outbound_msg["recipient"] = recipient
     else:
         outbound_msg["recipient"] = "all"
         outbound_msg["exclude"] = exclude
+    
+    outbound_msg["group_id"] = group_id
+    outbound_msg["connection_id"] = connection_id
     
     if type == "task":
         outbound_msg["message"] = {"type": type, "message": message}
@@ -34,37 +41,55 @@ async def invoke(payload):
     client.invoke(FunctionName=WEBSOCKET_HANDLER_ARN, InvocationType='Event', Payload=json.dumps(payload))
 
 async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q2A, schemas.QuestionAnswerForm_1Q1A], db: Session):
-    form = form.model_dump()
-    await send(recipient="all", message="START", type="task")
-    botclients = await setup_bot_clients(form, db)
+    connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+    result = connections.scan(FilterExpression=Attr('client_id').ne("autoanswerbot") & Attr('is_active').eq(0))
+    result = result["Items"]
+    if result:
+        result.sort(key=lambda item: item["group_id"])
+        grouped_bots = {key: list(group) for key, group in groupby(result, key=lambda bot: bot["group_id"])}
+        form = form.model_dump()
+        if len(form) == 2:
+            filtered_groups = {key: group for key, group in grouped_bots.items() if all(i["connection_id"] != "X" if i["client_id"] != "answerbot_exposure" else i["connection_id"] == "X" for i in group)}
+        elif len(form) == 3:
+            filtered_groups = {key: group for key, group in grouped_bots.items() if all(i["connection_id"] != "X" for i in group)}
+        
+        if len(filtered_groups) >= 1:
+            group_id, clients = next(iter(filtered_groups.items()))
+            await send(recipient="all", message="START", type="task", group_id=group_id)
+            botclients = await setup_bot_clients(form, db, group=clients)
+        else:
+            raise HTTPException(status_code=403, detail="Not all required bot clients are connected!")
+    else:
+        raise HTTPException(status_code=403, detail="Not all required bot clients are connected!")
 
     if len(form) == 2:
-        await send(recipient="questionbot", message={"question": form['question']['content']}, type="response_data")
-        await send(recipient="answerbot_advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data")
+        await send(recipient="questionbot", message={"question": form['question']['content']}, type="response_data", connection_id=botclients["questionbot"]["connection_id"])
+        await send(recipient="answerbot_advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data", connection_id=botclients["answerbot_advertisement"]["connection_id"])
 
-        await send(recipient="questionbot", message="1Q1A", type="response_data")
+        await send(recipient="questionbot", message="1Q1A", type="response_data", connection_id=botclients["questionbot"]["connection_id"])
     elif len(form) == 3:
-        await send(recipient="questionbot", message={"question": form['question']['content']}, type="response_data")
-        await send(recipient="answerbot_advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data")
-        await send(recipient="answerbot_exposure", message={"answer_exposure": form['answer_exposure']['content']}, type="response_data")
+        await send(recipient="questionbot", message={"question": form['question']['content']}, type="response_data", connection_id=botclients["questionbot"]["connection_id"])
+        await send(recipient="answerbot_advertisement", message={"answer_advertisement": form['answer_advertisement']['content']}, type="response_data", connection_id=botclients["answerbot_advertisement"]["connection_id"])
+        await send(recipient="answerbot_exposure", message={"answer_exposure": form['answer_exposure']['content']}, type="response_data", connection_id=botclients["answerbot_exposure"]["connection_id"])
 
-        await send(recipient="questionbot", message="1Q2A", type="response_data")
+        await send(recipient="questionbot", message="1Q2A", type="response_data", connection_id=botclients["questionbot"]["connection_id"])
     return {"message": "Form received and started automation.", 'bot_clients': botclients}
 
-async def setup_bot_clients(form: dict, db: Session):
+async def setup_bot_clients(form: dict, db: Session, group: list):
     client_address = {'question': 'questionbot', 'answer_advertisement': 'answerbot_advertisement', 'answer_exposure': 'answerbot_exposure'}
     botclients = {}
     for k, v in form.items():
         account = await get_naver_account(db=db, filters=[models.NaverAccount.status == 0, models.NaverAccount.id == v['id']])
-        await send(recipient=client_address[k], message=account.model_dump(), type="response_data")
+        connection_id, group_id = [(i["connection_id"], i["group_id"]) for i in group if i["client_id"] == client_address[k]][0]
+        await send(recipient=client_address[k], message=account.model_dump(), type="response_data", group_id=group_id, connection_id=connection_id)
 
         user_session = await get_user_session(db=db, filters=[models.UserSession.username == account.username])
-        await send(recipient=client_address[k], message=user_session.model_dump(), type="response_data")
+        await send(recipient=client_address[k], message=user_session.model_dump(), type="response_data", group_id=group_id, connection_id=connection_id)
 
-        botclients[k] = account.username
+        botclients[client_address[k]] = {"connection_id": connection_id, "group_id": group_id}
     
     botconfigs = await get_bot_configs(db=db, filters=[models.BotConfigs.id == 1])
-    await send(recipient="all", message=botconfigs.model_dump(), type="response_data")
+    await send(recipient="all", message=botconfigs.model_dump(), type="response_data", group_id=group[0]["group_id"])
     return botclients
 
 async def add_account(account: schemas.NaverAccountCreate, db: Session):
@@ -184,6 +209,8 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
         raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
     
     botconfigs = autoanswerbot_data.pop('botconfigs')
+    answers_per_day = botconfigs["answers_per_day"].split("-")
+    botconfigs["answers_per_day"] = random.randrange(int(answers_per_day[0]), int(answers_per_day[-1]) + 1)
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
     prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split('\n') if i]
 
