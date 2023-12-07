@@ -108,11 +108,3 @@ class Categories(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     category = Column(String(255), unique=True, index=True, default="")
-
-class BotConnections(Base):
-    __tablename__ = "bot_connections"
-
-    id = Column(Integer, primary_key=True, index=True)
-    questionbot = Column(String(255), unique=True, index=True)
-    answerbot_advertisement = Column(String(255), unique=True, index=True)
-    answerbot_exposure = Column(String(255), unique=True, index=True)
