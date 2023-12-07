@@ -26,7 +26,7 @@ def websocket_handler(event, context):
         response = asyncio.run(send_message(outbound_msg=event))
     elif route_key == "processMessage":
         if check_matching_connection_id(connection_id=event["requestContext"]["connectionId"], bot_client=body["client_id"]):
-            response = asyncio.run(process_incoming_message(client_id=body["client_id"], message=body, connection_id=event["requestContext"]["connectionId"]))
+            response = asyncio.run(process_incoming_message(client_id=body["client_id"], message=body, connection_id=event["requestContext"]["connectionId"], group_id=body["group_id"]))
         else:
             response = {"statusCode": 403, "body": f'Invalid connection ID!'}
     else:

@@ -13,13 +13,13 @@ ENDPOINT_URL = os.getenv("ENDPOINT_URL")
 client = boto3.client('apigatewaymanagementapi', region_name='ap-southeast-1', endpoint_url=ENDPOINT_URL)
 dynamodb = boto3.resource('dynamodb')
 
-async def process_incoming_message(client_id, message: dict, connection_id: str=""):
+async def process_incoming_message(client_id, message: dict, connection_id: str="", group_id: str=""):
     if message["type"] == "notification":
-        outbound_msg = await create_outbound_message(message=message['data'], recipient=message["send_to"], type="response_data")
+        outbound_msg = await create_outbound_message(message=message['data'], recipient=message["send_to"], type="response_data", group_id=group_id)
         response = await send_message(outbound_msg)
     elif message["type"] == "update":
         update_result = await process_update_request(table=message['table'], data=message['data'], filters=message['filters'], db=Session())
-        outbound_msg = await create_outbound_message(message=update_result, recipient=client_id, type="message")
+        outbound_msg = await create_outbound_message(message=update_result, recipient=client_id, type="message", connection_id=connection_id)
         response = await send_message(outbound_msg)
     elif message["type"] == "logging":
         print(message["log"])
@@ -41,7 +41,7 @@ async def process_incoming_message(client_id, message: dict, connection_id: str=
             return {"statusCode": 404, "body": f"No matching connection ID!"}
     return response
 
-async def create_outbound_message(message, type: str, recipient: str, exclude: str=""):
+async def create_outbound_message(message, type: str, recipient: str, exclude: str="", group_id: str="", connection_id: str=""):
     outbound_msg = {}
 
     if not recipient == "all":
@@ -49,6 +49,9 @@ async def create_outbound_message(message, type: str, recipient: str, exclude: s
     else:
         outbound_msg["recipient"] = "all"
         outbound_msg["exclude"] = exclude
+    
+    outbound_msg["group_id"] = group_id
+    outbound_msg["connection_id"] = connection_id
     
     if type == "task":
         outbound_msg["message"] = {"type": type, "message": message}
@@ -63,7 +66,7 @@ async def send_message(outbound_msg):
     if outbound_msg["recipient"] == "all":
         response = await broadcast(exclude=outbound_msg["exclude"], message=outbound_msg["message"], group_id=outbound_msg["group_id"])
     else:
-        response = await send_to_client(recipient=outbound_msg["recipient"], message=outbound_msg["message"], connection_id=outbound_msg["connection_id"])
+        response = await send_to_client(recipient=outbound_msg["recipient"], message=outbound_msg["message"], connection_id=outbound_msg["connection_id"], group_id=outbound_msg["group_id"])
     return response
 
 async def broadcast(message, exclude: str="", group_id: str=""):
@@ -72,7 +75,7 @@ async def broadcast(message, exclude: str="", group_id: str=""):
     result = result["Items"]
     if result:
         for i in result:
-            if i["connection_id"] == "X":
+            if i["connection_id"] == "X" or i["client_id"] in exclude:
                 continue
 
             await send_to_client(recipient=i["client_id"], message=message, connection_id=i["connection_id"])
@@ -82,37 +85,16 @@ async def broadcast(message, exclude: str="", group_id: str=""):
 
 async def send_to_client(message, recipient: str, connection_id: str="", group_id: str=""):
     if not connection_id:
-        if recipient == "autoanswerbot":
-            connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
-
-            is_active = 0 if message["type"] == "task" and message["message"] == "START"  else 1
-
-            result = connections.scan(FilterExpression=Attr('client_id').eq("autoanswerbot") & Attr('is_active').eq(is_active))
-            result = result["Items"]
-            if result:
-                connection_id = result[0]["connection_id"]
-
-                if not is_active:
-                    connections.update_item(
-                        Key={
-                            'group_id': result[0]["group_id"],
-                            'client_id': result[0]["client_id"]
-                        },
-                        UpdateExpression='SET is_active = :is_active',
-                        ExpressionAttributeValues={
-                            ':is_active': 1
-                        }
-                    )
+        connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+        result = connections.query(KeyConditionExpression=Key("group_id").eq(group_id) & Key("client_id").eq(recipient))
+        result = result["Items"]
+        if result:
+            connection_id = result[0]["connection_id"]
         else:
-            with Session() as db:
-                bot_connections = db.query(models.BotConnections).filter(models.BotConnections.id == 1).first()
-            connection_id = getattr(bot_connections, recipient)
+            return {"statusCode": 404, "body": f"Connection ID not found!"}
 
-    if connection_id:
-        client.post_to_connection(ConnectionId=connection_id, Data=json.dumps(message).encode('utf-8'))
-        return {"statusCode": 200}
-    else:
-        return {"statusCode": 404, "body": f"No {recipient} currently connected!"}
+    client.post_to_connection(ConnectionId=connection_id, Data=json.dumps(message).encode('utf-8'))
+    return {"statusCode": 200}
 
 async def process_update_state(client_id: str, connection_id: str, state: int):
     if client_id == "autoanswerbot":
