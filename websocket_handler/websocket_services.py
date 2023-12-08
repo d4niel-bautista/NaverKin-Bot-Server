@@ -1,17 +1,14 @@
 from database import models, schemas
-from database.database import Session
+from database.database import Session, dynamodb
 from services.services import get_account_interactions, update, add_answer_response, add_question_post, add_login
 from utils import convert_date
 import boto3
 import json
-from dotenv import load_dotenv
-load_dotenv()
 import os
-from boto3.dynamodb.conditions import Attr, Key
+from boto3.dynamodb.conditions import Key
 
-ENDPOINT_URL = os.getenv("ENDPOINT_URL")
+ENDPOINT_URL = os.environ["ENDPOINT_URL"]
 client = boto3.client('apigatewaymanagementapi', region_name='ap-southeast-1', endpoint_url=ENDPOINT_URL)
-dynamodb = boto3.resource('dynamodb')
 
 async def process_incoming_message(client_id, message: dict, connection_id: str="", group_id: str=""):
     if message["type"] == "notification":

@@ -1,19 +1,19 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
-load_dotenv()
 import os
+import boto3
 
-USER = os.getenv("DB_USER")
-PASS = os.getenv("DB_PASS")
-HOST = os.getenv("DB_HOST")
-PORT = os.getenv("DB_PORT")
-NAME = os.getenv("DB_NAME")
+USER = os.environ["DB_USER"]
+PASS = os.environ["DB_PASS"]
+HOST = os.environ["DB_HOST"]
+PORT = os.environ["DB_PORT"]
+NAME = os.environ["DB_NAME"]
 DATABASE_URL = f"mysql+pymysql://{USER}:{PASS}@{HOST}:{PORT}/{NAME}"
 
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+dynamodb = boto3.resource('dynamodb')
 
 Base = declarative_base()
 

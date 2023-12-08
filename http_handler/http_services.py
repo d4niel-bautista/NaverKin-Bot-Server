@@ -7,15 +7,13 @@ from typing import Union
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from database import schemas, models
+from database.database import dynamodb
 from services.services import add_naver_account, add_account_interactions, add_user_session, add_category, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, get_categories, get_logins, get_answer_response, get_question_post, update, delete
 from utils import generate_text
-from dotenv import load_dotenv
-load_dotenv()
 import os
 
-WEBSOCKET_HANDLER_ARN = os.getenv("WEBSOCKET_HANDLER_ARN")
+WEBSOCKET_HANDLER_ARN = os.environ["WEBSOCKET_HANDLER_ARN"]
 client = boto3.client('lambda', region_name='ap-southeast-1')
-dynamodb = boto3.resource('dynamodb')
 
 async def send(message, type: str, recipient: str, exclude: str="", group_id: str="", connection_id: str=""):
     outbound_msg = {'invokedRouteKey': 'sendMessage'}
@@ -214,13 +212,21 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
     prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split('\n') if i]
 
-    await send(recipient="autoanswerbot", message="START", type="task")
-    await send(recipient='autoanswerbot', message=naver_account.model_dump(), type="response_data")
+    connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+    result = connections.scan(FilterExpression=Attr('client_id').eq("autoanswerbot") & Attr('is_active').eq(0))
+    result = result["Items"]
+    if result:
+        connection_id = result[0]["connection_id"]
+    else:
+        raise HTTPException(status_code=404, detail="No available autoanswerbot is connected!")
+
+    await send(recipient="autoanswerbot", message="START", type="task", connection_id=connection_id)
+    await send(recipient='autoanswerbot', message=naver_account.model_dump(), type="response_data", connection_id=connection_id)
 
     user_session = await get_user_session(db=db, filters=[models.UserSession.username == naver_account.username])
-    await send(recipient='autoanswerbot', message=user_session.model_dump(), type="response_data")
-    await send(recipient='autoanswerbot', message=botconfigs, type="response_data")
-    await send(recipient='autoanswerbot', message=prompt_configs, type="response_data")
+    await send(recipient='autoanswerbot', message=user_session.model_dump(), type="response_data", connection_id=connection_id)
+    await send(recipient='autoanswerbot', message=botconfigs, type="response_data", connection_id=connection_id)
+    await send(recipient='autoanswerbot', message=prompt_configs, type="response_data", connection_id=connection_id)
 
 async def create_category(category: schemas.CategoryBase, db: Session):
     existing_category = await get_categories(db=db, filters=[models.Categories.category == category.category], schema_validate=False)

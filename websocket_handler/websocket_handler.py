@@ -1,10 +1,11 @@
-from websocket_services import send_message, process_incoming_message, dynamodb
+from websocket_services import send_message, process_incoming_message
 import asyncio
 import json
 import os
 from boto3.dynamodb.conditions import Attr, Key
 import string
 import random
+from database.database import dynamodb
 
 def websocket_handler(event, context):
     print(event)
