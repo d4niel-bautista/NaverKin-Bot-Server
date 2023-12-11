@@ -166,10 +166,12 @@ async def generate_form_content(db: Session):
     question = f"{question_content['title']}\n{question_content['content']}"
 
     answer_advertisement_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 2])
-    answer_advertisement_content = await generate_text(query=question, prompt=answer_advertisement_prompt_configs.prompt, prohibited_words=prohibited_words)
+    advertisement_query = answer_advertisement_prompt_configs.query if answer_advertisement_prompt_configs.query else question
+    answer_advertisement_content = await generate_text(query=advertisement_query, prompt=answer_advertisement_prompt_configs.prompt, prohibited_words=prohibited_words)
 
     answer_exposure_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
-    answer_exposure_content = await generate_text(query=question, prompt=answer_exposure_prompt_configs.prompt, prohibited_words=prohibited_words)
+    exposure_query = answer_exposure_prompt_configs.query if answer_exposure_prompt_configs.query else question
+    answer_exposure_content = await generate_text(query=exposure_query, prompt=answer_exposure_prompt_configs.prompt, prohibited_words=prohibited_words)
     return {"question": question_content, "answer_advertisement": answer_advertisement_content, "answer_exposure": answer_exposure_content}
 
 async def fetch_prompt_configs(db: Session):
