@@ -152,7 +152,7 @@ async def generate_form_content(db: Session):
         if attempts >= 3:
             raise HTTPException(status_code=500, detail="There is problem with ChatGPT API as of the moment.")
         question_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 1])
-        prohibited_words = [i for i in question_prompt_configs.prohibited_words.split(',') if i]
+        prohibited_words = [i for i in question_prompt_configs.prohibited_words.split(';') if i]
         try:
             question_content = await generate_text(query=question_prompt_configs.query, prompt=question_prompt_configs.prompt, prohibited_words=prohibited_words)
             question_content = json.loads(question_content)
@@ -178,12 +178,10 @@ async def fetch_prompt_configs(db: Session):
     question_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 1])
     answer_advertisement_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 2])
     answer_exposure_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 3])
-    prohibited_words = "\n".join([i for i in question_prompt_configs.prohibited_words.split(',') if i])
-    return {"question": question_prompt_configs, "answer_advertisement": answer_advertisement_prompt_configs, "answer_exposure": answer_exposure_prompt_configs, "prohibited_words": prohibited_words}
+    return {"question": question_prompt_configs, "answer_advertisement": answer_advertisement_prompt_configs, "answer_exposure": answer_exposure_prompt_configs, "prohibited_words": question_prompt_configs.prohibited_words}
 
 async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpdate, db: Session):
-    prohibited_words = ",".join([i.strip() for i in prompt_configs_update.prohibited_words.split("\n") if i])
-    await update(model=models.PromptConfigs, data={"query": prompt_configs_update.question['query'], "prompt": prompt_configs_update.question['prompt'], "prohibited_words": prohibited_words}, filters={"description": "question"}, db=db)
+    await update(model=models.PromptConfigs, data={"query": prompt_configs_update.question['query'], "prompt": prompt_configs_update.question['prompt'], "prohibited_words": prompt_configs_update.prohibited_words}, filters={"description": "question"}, db=db)
     await update(model=models.PromptConfigs, data={"query": prompt_configs_update.answer_advertisement['query'], "prompt": prompt_configs_update.answer_advertisement['prompt']}, filters={"description": "answer_advertisement"}, db=db)
     return await update(model=models.PromptConfigs, data={"query": prompt_configs_update.answer_exposure['query'], "prompt": prompt_configs_update.answer_exposure['prompt']}, filters={"description": "answer_exposure"}, db=db)
 
@@ -212,7 +210,7 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     answers_per_day = botconfigs["answers_per_day"].split("-")
     botconfigs["answers_per_day"] = random.randrange(int(answers_per_day[0]), int(answers_per_day[-1]) + 1)
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
-    prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split('\n') if i]
+    prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split(';') if i]
 
     connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
     result = connections.scan(FilterExpression=Attr('client_id').eq("autoanswerbot") & Attr('is_active').eq(0))
