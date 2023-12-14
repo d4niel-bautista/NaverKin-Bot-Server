@@ -90,7 +90,7 @@ async def add_naver_account(account: schemas.NaverAccountCreate, db: Session):
     try:
         db.commit()
         db.refresh(naver_account)
-        return schemas.NaverAccountBase.model_validate(naver_account)
+        return schemas.NaverAccount.model_validate(naver_account)
     except:
         db.rollback()
 
