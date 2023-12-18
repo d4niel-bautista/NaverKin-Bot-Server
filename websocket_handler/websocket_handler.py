@@ -20,7 +20,7 @@ def websocket_handler(event, context):
     body = json.loads(event.pop("body", "{}"))
 
     if route_key == "$connect":
-        response = handle_connection(connection_id=event['requestContext']['connectionId'], bot_client=event['queryStringParameters']['bot'], group_id=event['queryStringParameters']['group_id'])
+        response = handle_connection(connection_id=event['requestContext']['connectionId'], bot_client=event['queryStringParameters']['bot'], group_id=event['queryStringParameters']['group_id'], VM_id=event['queryStringParameters']['VM_id'])
     elif route_key == "$disconnect":
         response = handle_disconnection(connection_id=event['requestContext']['connectionId'])
     elif route_key == "sendMessage":
@@ -38,7 +38,7 @@ def websocket_handler(event, context):
 def generate_unique_id(size=8, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-def handle_connection(connection_id: str, bot_client: str, group_id: str=""):
+def handle_connection(connection_id: str, bot_client: str, group_id: str="", VM_id: str=""):
     connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
     if group_id:
         result = connections.query(KeyConditionExpression=Key("group_id").eq(group_id))
@@ -50,7 +50,7 @@ def handle_connection(connection_id: str, bot_client: str, group_id: str=""):
 
     if bot_client == "autoanswerbot":
         group_id = generate_unique_id()
-        connections.put_item(Item={"group_id": group_id, "client_id": bot_client, "connection_id": connection_id, "username": "", "is_active": 0})
+        connections.put_item(Item={"group_id": group_id, "client_id": bot_client, "connection_id": connection_id, "VM_id": VM_id, "account": "", "botconfigs": "", "prompt_configs": "", "is_active": 0})
         return {"statusCode": 200}
     else:
         result = connections.scan(FilterExpression=Attr("group_id").ne("") & Attr("client_id").eq(bot_client))
