@@ -36,6 +36,20 @@ async def process_incoming_message(client_id, message: dict, connection_id: str=
             response = await send_to_client(message={"connection_info": {"group_id": result[0]["group_id"], "connection_id": result[0]["connection_id"]}}, recipient=message["client_id"], connection_id=result[0]["connection_id"])
         else:
             return {"statusCode": 404, "body": f"No matching connection ID!"}
+    elif message["type"] == "update_configs":
+        connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+        result = connections.query(IndexName="connection_id-client_id-index", 
+                                KeyConditionExpression=Key("connection_id").eq(connection_id))
+        result = result["Items"]
+        if result:
+            connections.update_item(Key={"group_id": result[0]["group_id"], "client_id": "autoanswerbot"}, 
+                        UpdateExpression="SET account = :account, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
+                        ExpressionAttributeValues={":account": message["account"], ":prompt_configs": message["prompt_configs"], ":botconfigs": message["botconfigs"]})
+            response = {"statusCode": 200}
+        response = {"statusCode": 404, "body": f"Connection ID not found!"}
+    else:
+        response = {"statusCode": 403, "body": f"Invalid message process type!"}
+    
     return response
 
 async def create_outbound_message(message, type: str, recipient: str, exclude: str="", group_id: str="", connection_id: str=""):
