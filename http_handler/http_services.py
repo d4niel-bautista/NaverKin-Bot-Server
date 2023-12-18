@@ -199,6 +199,12 @@ async def update_autoanswerbot_configs(update_config: dict, db: Session):
     if botconfigs_update and prompt_update:
         return {'botconfigs': update_config['botconfigs'], 'prompt_configs': update_config['prompt_configs']}
 
+async def fetch_autoanswerbot_connections():
+    connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
+    result = connections.scan(FilterExpression=Attr('client_id').eq("autoanswerbot"))
+    result = result["Items"]
+    return result
+
 async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     levelup_account = autoanswerbot_data.pop('levelup_account')
     naver_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == levelup_account['id']])
@@ -217,6 +223,9 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     result = result["Items"]
     if result:
         connection_id = result[0]["connection_id"]
+        connections.update_item(Key={"group_id": result[0]["group_id"], "client_id": "autoanswerbot"}, 
+                        UpdateExpression="SET account = :account, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
+                        ExpressionAttributeValues={":account": levelup_account, ":prompt_configs": prompt_configs, ":botconfigs": botconfigs})
     else:
         raise HTTPException(status_code=404, detail="No available autoanswerbot is connected!")
 

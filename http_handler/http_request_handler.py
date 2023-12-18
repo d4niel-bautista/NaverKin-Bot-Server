@@ -54,6 +54,10 @@ class HTTPRequestHandler():
         async def update_autoanswerbot_configs(update_configs: Dict, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.update_autoanswerbot_configs(update_configs, db)
         
+        @self.router.get("/v1/api/autoanswerbot_connections")
+        async def get_autoanswerbot_connections(authenticated: schemas.Admin=Depends(get_current_user)):
+            return await http_services.fetch_autoanswerbot_connections()
+        
         @self.router.post("/v1/api/start_autoanswerbot")
         async def start_autoanswerbot(autoanswerbot_data: Dict, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
             return await http_services.start_autoanswerbot(autoanswerbot_data, db)
