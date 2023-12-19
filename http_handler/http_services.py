@@ -152,7 +152,7 @@ async def generate_form_content(db: Session):
         if attempts >= 3:
             raise HTTPException(status_code=500, detail="There is problem with ChatGPT API as of the moment.")
         question_prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id == 1])
-        prohibited_words = [i for i in question_prompt_configs.prohibited_words.split(';') if i]
+        prohibited_words = [i.strip() for i in question_prompt_configs.prohibited_words.split(';') if i.strip()]
         try:
             question_content = await generate_text(query=question_prompt_configs.query, prompt=question_prompt_configs.prompt, prohibited_words=prohibited_words)
             question_content = json.loads(question_content)
@@ -216,7 +216,7 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     answers_per_day = botconfigs["answers_per_day"].split("-")
     botconfigs["answers_per_day"] = random.randrange(int(answers_per_day[0]), int(answers_per_day[-1]) + 1)
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
-    prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split(';') if i]
+    prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split(';') if i.strip()]
 
     connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
     result = connections.scan(FilterExpression=Attr('client_id').eq("autoanswerbot") & Attr('is_active').eq(0))
