@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from database import schemas, models
 from database.database import dynamodb
 from services.services import add_naver_account, add_account_interactions, add_user_session, add_category, get_naver_account, get_account_interactions, get_user_session, get_bot_configs, get_prompt_configs, get_categories, get_logins, get_answer_response, get_question_post, update, delete
-from utils import generate_text
+from utils import generate_text, convert_date
 import os
 
 WEBSOCKET_HANDLER_ARN = os.environ["WEBSOCKET_HANDLER_ARN"]
@@ -230,9 +230,10 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
         raise HTTPException(status_code=404, detail="No available autoanswerbot is connected!")
 
     await send(recipient="autoanswerbot", message="START", type="task", connection_id=connection_id)
-    await send(recipient='autoanswerbot', message=naver_account.model_dump(), type="response_data", connection_id=connection_id)
+    naver_account = convert_date(naver_account.model_dump())
+    await send(recipient='autoanswerbot', message=naver_account, type="response_data", connection_id=connection_id)
 
-    user_session = await get_user_session(db=db, filters=[models.UserSession.username == naver_account.username])
+    user_session = await get_user_session(db=db, filters=[models.UserSession.username == naver_account['username']])
     await send(recipient='autoanswerbot', message=user_session.model_dump(), type="response_data", connection_id=connection_id)
     await send(recipient='autoanswerbot', message=botconfigs, type="response_data", connection_id=connection_id)
     await send(recipient='autoanswerbot', message=prompt_configs, type="response_data", connection_id=connection_id)
