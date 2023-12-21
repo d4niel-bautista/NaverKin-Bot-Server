@@ -14,7 +14,7 @@ async def get_admin_account(db: Session, filters: list=[], fetch_one: bool=True,
                 if fetch_one else\
                 db.query(models.AdminLogin).filter(*filters).all()
 
-async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccountBase, schema_validate: bool=True):
+async def get_naver_account(db: Session, filters: list=[], fetch_one: bool=True, schema: schemas.BaseModel = schemas.NaverAccount, schema_validate: bool=True):
     if schema_validate:
         return schema.model_validate(db.query(models.NaverAccount).filter(*filters).first())\
                 if fetch_one else\
