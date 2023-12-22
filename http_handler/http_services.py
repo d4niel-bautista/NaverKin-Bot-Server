@@ -1,7 +1,6 @@
 import json
 import boto3
 from boto3.dynamodb.conditions import Attr
-import random
 from itertools import groupby
 from typing import Union
 from fastapi import HTTPException
@@ -213,8 +212,6 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
         raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
     
     botconfigs = autoanswerbot_data.pop('botconfigs')
-    answers_per_day = botconfigs["answers_per_day"].split("-")
-    botconfigs["answers_per_day"] = random.randrange(int(answers_per_day[0]), int(answers_per_day[-1]) + 1)
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
     prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split(';') if i.strip()]
 
