@@ -212,6 +212,7 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
         raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
     
     botconfigs = autoanswerbot_data.pop('botconfigs')
+    botconfigs["answers_per_day"] = int(botconfigs["answers_per_day"])
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
     prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split(';') if i.strip()]
 
