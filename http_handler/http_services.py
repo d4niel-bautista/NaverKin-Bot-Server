@@ -1,6 +1,6 @@
 import json
 import boto3
-from boto3.dynamodb.conditions import Attr
+from boto3.dynamodb.conditions import Attr, Key
 from itertools import groupby
 from typing import Union
 from fastapi import HTTPException
@@ -211,13 +211,14 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     if not naver_account:
         raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
     
+    connection_info = autoanswerbot_data.pop('connection_info')
     botconfigs = autoanswerbot_data.pop('botconfigs')
     botconfigs["answers_per_day"] = int(botconfigs["answers_per_day"])
     prompt_configs = autoanswerbot_data.pop('prompt_configs')
     prompt_configs['prohibited_words'] = [i.strip() for i in prompt_configs['prohibited_words'].split(';') if i.strip()]
 
     connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
-    result = connections.scan(FilterExpression=Attr('client_id').eq("autoanswerbot") & Attr('is_active').eq(0))
+    result = connections.query(KeyConditionExpression=Key("group_id").eq(connection_info['group_id']))
     result = result["Items"]
     if result:
         connection_id = result[0]["connection_id"]
@@ -225,7 +226,7 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
                         UpdateExpression="SET account = :account, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
                         ExpressionAttributeValues={":account": levelup_account, ":prompt_configs": prompt_configs, ":botconfigs": botconfigs})
     else:
-        raise HTTPException(status_code=404, detail="No available autoanswerbot is connected!")
+        raise HTTPException(status_code=404, detail="No matching autoanswerbot group_id found!")
 
     await send(recipient="autoanswerbot", message="START", type="task", connection_id=connection_id)
     naver_account = convert_date(naver_account.model_dump())
