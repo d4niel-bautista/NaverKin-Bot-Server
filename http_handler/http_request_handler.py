@@ -59,8 +59,8 @@ class HTTPRequestHandler():
             return await http_services.fetch_autoanswerbot_connections()
         
         @self.router.post("/v1/api/start_autoanswerbot")
-        async def start_autoanswerbot(autoanswerbot_data: Dict, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):
-            return await http_services.start_autoanswerbot(autoanswerbot_data, db)
+        async def start_autoanswerbot(autoanswerbot_data: Dict, authenticated: schemas.Admin=Depends(get_current_user)):
+            return await http_services.start_autoanswerbot(autoanswerbot_data)
         
         @self.router.post("/v1/api/categories")
         async def add_category(category: schemas.CategoryBase, db: Session=Depends(database.get_db_conn), authenticated: schemas.Admin=Depends(get_current_user)):

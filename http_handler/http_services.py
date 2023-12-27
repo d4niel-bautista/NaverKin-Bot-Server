@@ -204,13 +204,8 @@ async def fetch_autoanswerbot_connections():
     result = result["Items"]
     return result
 
-async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
-    levelup_account = autoanswerbot_data.pop('levelup_account')
-    naver_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == levelup_account['id']])
-
-    if not naver_account:
-        raise HTTPException(status_code=404, detail=f'Account "{levelup_account["username"]}" does not exist!')
-    
+async def start_autoanswerbot(autoanswerbot_data: dict):
+    levelup_accounts = autoanswerbot_data.pop('levelup_accounts')
     connection_info = autoanswerbot_data.pop('connection_info')
     botconfigs = autoanswerbot_data.pop('botconfigs')
     botconfigs["answers_per_day"] = int(botconfigs["answers_per_day"])
@@ -223,17 +218,13 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     if result:
         connection_id = result[0]["connection_id"]
         connections.update_item(Key={"group_id": result[0]["group_id"], "client_id": "autoanswerbot"}, 
-                        UpdateExpression="SET account = :account, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
-                        ExpressionAttributeValues={":account": levelup_account, ":prompt_configs": prompt_configs, ":botconfigs": botconfigs})
+                        UpdateExpression="SET accounts = :accounts, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
+                        ExpressionAttributeValues={":accounts": levelup_accounts, ":prompt_configs": prompt_configs, ":botconfigs": botconfigs})
     else:
         raise HTTPException(status_code=404, detail="No matching autoanswerbot group_id found!")
 
     await send(recipient="autoanswerbot", message="START", type="task", connection_id=connection_id)
-    naver_account = convert_date(naver_account.model_dump())
-    await send(recipient='autoanswerbot', message=naver_account, type="response_data", connection_id=connection_id)
-
-    user_session = await get_user_session(db=db, filters=[models.UserSession.username == naver_account['username']])
-    await send(recipient='autoanswerbot', message=user_session.model_dump(), type="response_data", connection_id=connection_id)
+    await send(recipient='autoanswerbot', message=levelup_accounts, type="response_data", connection_id=connection_id)
     await send(recipient='autoanswerbot', message=botconfigs, type="response_data", connection_id=connection_id)
     await send(recipient='autoanswerbot', message=prompt_configs, type="response_data", connection_id=connection_id)
 
