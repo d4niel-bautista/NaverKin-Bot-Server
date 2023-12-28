@@ -1,6 +1,6 @@
 from database import models, schemas
 from database.database import Session, dynamodb
-from services.services import get_account_interactions, update, add_answer_response, add_question_post, add_login
+from services.services import get_account_interactions, get_naver_account, get_user_session, update, add_answer_response, add_question_post, add_login
 from utils import convert_date
 import boto3
 import json
@@ -155,6 +155,20 @@ async def process_get_request(table: str, filters: dict, client_id: str, connect
     response = {"statusCode": 404, "body": f"No matches found!"}
     if table == "naverkin_answer_responses":
         response = await get_answer_response(filters=filters, client_id=client_id, connection_id=connection_id)
+    elif table == "naver_accounts":
+        account = await get_naver_account(db=Session(), filters=[models.NaverAccount.id == filters["id"]], schema_validate=False)
+        if account:
+            account = schemas.NaverAccount.model_validate(account)
+            account = convert_date(account.model_dump())
+            outbound_message = await create_outbound_message(message=account, type="response_data", recipient=client_id)
+            await send_to_client(message=outbound_message['message'], recipient=client_id, connection_id=connection_id)
+            user_session = await get_user_session(db=Session(), filters=[models.UserSession.username == account["username"]])
+            outbound_message = await create_outbound_message(message=user_session.model_dump(), type="response_data", recipient=client_id)
+            await send_to_client(message=outbound_message['message'], recipient=client_id, connection_id=connection_id)
+            response = {"statusCode": 200}
+        else:
+            outbound_message = await create_outbound_message(message="NO ACCOUNT FOUND!", type="response_data", recipient=client_id)
+            await send_to_client(message=outbound_message['message'], recipient=client_id, connection_id=connection_id)
     
     return response
 
