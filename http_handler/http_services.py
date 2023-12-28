@@ -35,7 +35,7 @@ async def send(message, type: str, recipient: str, exclude: str="", group_id: st
     await invoke(payload=outbound_msg)
 
 async def invoke(payload):
-    client.invoke(FunctionName=WEBSOCKET_HANDLER_ARN, InvocationType='Event', Payload=json.dumps(payload))
+    client.invoke(FunctionName=WEBSOCKET_HANDLER_ARN, InvocationType='RequestResponse', Payload=json.dumps(payload))
 
 async def process_question_answer_form(form: Union[schemas.QuestionAnswerForm_1Q2A, schemas.QuestionAnswerForm_1Q1A], db: Session):
     connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
@@ -204,8 +204,22 @@ async def fetch_autoanswerbot_connections():
     result = result["Items"]
     return result
 
-async def start_autoanswerbot(autoanswerbot_data: dict):
+async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     levelup_accounts = autoanswerbot_data.pop('levelup_accounts')
+
+    not_found_accounts = []
+    first_account = None
+    for i in levelup_accounts:
+        first_account = await get_naver_account(db=db, filters=[models.NaverAccount.id == i], schema_validate=False)
+        if first_account:
+            first_account = schemas.NaverAccount.model_validate(first_account)
+            break
+        not_found_accounts.append(i)
+    if not first_account:
+        raise HTTPException(status_code=404, detail="No matching accounts found!")
+    for i in not_found_accounts:
+        levelup_accounts.remove(i)
+
     connection_info = autoanswerbot_data.pop('connection_info')
     botconfigs = autoanswerbot_data.pop('botconfigs')
     botconfigs["answers_per_day"] = int(botconfigs["answers_per_day"])
@@ -225,6 +239,13 @@ async def start_autoanswerbot(autoanswerbot_data: dict):
 
     await send(recipient="autoanswerbot", message="START", type="task", connection_id=connection_id)
     await send(recipient='autoanswerbot', message=levelup_accounts, type="response_data", connection_id=connection_id)
+
+    naver_account = convert_date(first_account.model_dump())
+    await send(recipient='autoanswerbot', message=naver_account, type="response_data", connection_id=connection_id)
+
+    user_session = await get_user_session(db=db, filters=[models.UserSession.username == naver_account['username']])
+    await send(recipient='autoanswerbot', message=user_session.model_dump(), type="response_data", connection_id=connection_id)
+
     await send(recipient='autoanswerbot', message=botconfigs, type="response_data", connection_id=connection_id)
     await send(recipient='autoanswerbot', message=prompt_configs, type="response_data", connection_id=connection_id)
 
