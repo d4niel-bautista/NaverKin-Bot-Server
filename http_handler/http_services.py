@@ -232,13 +232,13 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
     if result:
         connection_id = result[0]["connection_id"]
         connections.update_item(Key={"group_id": result[0]["group_id"], "client_id": "autoanswerbot"}, 
-                        UpdateExpression="SET accounts = :accounts, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
-                        ExpressionAttributeValues={":accounts": levelup_accounts, ":prompt_configs": prompt_configs, ":botconfigs": botconfigs})
+                        UpdateExpression="SET account_ids = :account_ids, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
+                        ExpressionAttributeValues={":account_ids": levelup_accounts, ":prompt_configs": prompt_configs, ":botconfigs": botconfigs})
     else:
         raise HTTPException(status_code=404, detail="No matching autoanswerbot group_id found!")
 
     await send(recipient="autoanswerbot", message="START", type="task", connection_id=connection_id)
-    await send(recipient='autoanswerbot', message=levelup_accounts, type="response_data", connection_id=connection_id)
+    await send(recipient='autoanswerbot', message={"account_ids": levelup_accounts}, type="response_data", connection_id=connection_id)
 
     naver_account = convert_date(first_account.model_dump())
     await send(recipient='autoanswerbot', message=naver_account, type="response_data", connection_id=connection_id)
