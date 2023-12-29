@@ -50,7 +50,7 @@ def handle_connection(connection_id: str, bot_client: str, group_id: str="", VM_
 
     if bot_client == "autoanswerbot":
         group_id = generate_unique_id()
-        connections.put_item(Item={"group_id": group_id, "client_id": bot_client, "connection_id": connection_id, "VM_id": VM_id, "accounts": "", "botconfigs": "", "prompt_configs": "", "is_active": 0})
+        connections.put_item(Item={"group_id": group_id, "client_id": bot_client, "connection_id": connection_id, "VM_id": VM_id, "account": "", "account_ids": "", "botconfigs": "", "prompt_configs": "", "is_active": 0})
         return {"statusCode": 200}
     else:
         result = connections.scan(FilterExpression=Attr("group_id").ne("") & Attr("client_id").eq(bot_client))

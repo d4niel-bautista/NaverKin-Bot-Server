@@ -43,8 +43,8 @@ async def process_incoming_message(client_id, message: dict, connection_id: str=
         result = result["Items"]
         if result:
             connections.update_item(Key={"group_id": result[0]["group_id"], "client_id": "autoanswerbot"}, 
-                        UpdateExpression="SET account = :account, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
-                        ExpressionAttributeValues={":account": message["account"], ":prompt_configs": message["prompt_configs"], ":botconfigs": message["botconfigs"]})
+                        UpdateExpression="SET account = :account, account_ids = :account_ids, prompt_configs = :prompt_configs, botconfigs = :botconfigs",
+                        ExpressionAttributeValues={":account": message["account"], ":account_ids": message["account_ids"], ":prompt_configs": message["prompt_configs"], ":botconfigs": message["botconfigs"]})
             response = {"statusCode": 200}
         response = {"statusCode": 404, "body": f"Connection ID not found!"}
     else:
