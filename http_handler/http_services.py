@@ -187,7 +187,7 @@ async def update_prompt_configs(prompt_configs_update: schemas.PromptConfigsUpda
 async def fetch_autoanswerbot_configs(db: Session):
     botconfigs = await get_bot_configs(db=db, filters=[models.BotConfigs.id == 2], schema=schemas.BotConfigsStandalone)
     prompt_configs = await get_prompt_configs(db=db, filters=[models.PromptConfigs.id > 3], fetch_one=False)
-    levelup_accounts = await get_naver_account(db=db, filters=[models.NaverAccount.category > 1, models.NaverAccount.status == 0], fetch_one=False, schema=schemas.NaverAccount)
+    levelup_accounts = await get_naver_account(db=db, filters=[models.NaverAccount.category > 1], fetch_one=False, schema=schemas.NaverAccount)
     return {'botconfigs': botconfigs, 'prompt_configs': prompt_configs, 'levelup_accounts': levelup_accounts}
 
 async def update_autoanswerbot_configs(update_config: dict, db: Session):
@@ -219,6 +219,10 @@ async def start_autoanswerbot(autoanswerbot_data: dict, db: Session):
         raise HTTPException(status_code=404, detail="No matching accounts found!")
     for i in not_found_accounts:
         levelup_accounts.remove(i)
+    
+    db.query(models.NaverAccount).filter(models.NaverAccount.id.in_(levelup_accounts)).update({"status": 1}, synchronize_session=False)
+    db.commit()
+    db.close()
 
     connection_info = autoanswerbot_data.pop('connection_info')
     botconfigs = autoanswerbot_data.pop('botconfigs')
