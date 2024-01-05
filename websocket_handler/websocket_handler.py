@@ -1,4 +1,4 @@
-from websocket_services import send_message, process_incoming_message
+from websocket_services import send_message, process_incoming_message, reset_account_state
 import asyncio
 import json
 import os
@@ -22,7 +22,7 @@ def websocket_handler(event, context):
     if route_key == "$connect":
         response = handle_connection(connection_id=event['requestContext']['connectionId'], bot_client=event['queryStringParameters']['bot'], group_id=event['queryStringParameters']['group_id'], VM_id=event['queryStringParameters']['VM_id'])
     elif route_key == "$disconnect":
-        response = handle_disconnection(connection_id=event['requestContext']['connectionId'])
+        response = handle_disconnection(connection_id=event['requestContext']['connectionId'], disconnectStatusCode=event['requestContext']['disconnectStatusCode'])
     elif route_key == "sendMessage":
         response = asyncio.run(send_message(outbound_msg=event))
     elif route_key == "processMessage":
@@ -43,6 +43,12 @@ def handle_connection(connection_id: str, bot_client: str, group_id: str="", VM_
     if group_id:
         result = connections.query(KeyConditionExpression=Key("group_id").eq(group_id))
         if len(result["Items"]) == 3:
+            connections.update_item(Key={"group_id": group_id, "client_id": bot_client}, 
+                                    UpdateExpression="SET connection_id = :connection_id",
+                                    ExpressionAttributeValues={":connection_id": connection_id})
+            return {"statusCode": 200}
+        
+        if result["Items"] and bot_client == "autoanswerbot":
             connections.update_item(Key={"group_id": group_id, "client_id": bot_client}, 
                                     UpdateExpression="SET connection_id = :connection_id",
                                     ExpressionAttributeValues={":connection_id": connection_id})
@@ -73,14 +79,25 @@ def handle_connection(connection_id: str, bot_client: str, group_id: str="", VM_
                                 ExpressionAttributeValues={":connection_id": connection_id})
         return {"statusCode": 200}
 
-def handle_disconnection(connection_id: str):
+def handle_disconnection(connection_id: str, disconnectStatusCode: int):
     connections = dynamodb.Table(os.environ["DYNAMO_TABLE"])
     result = connections.query(IndexName="connection_id-client_id-index", 
                                KeyConditionExpression=Key("connection_id").eq(connection_id))
     result = result["Items"]
     
     if result[0]["client_id"] == "autoanswerbot":
-        connections.delete_item(Key={"group_id": result[0]["group_id"], "client_id": result[0]["client_id"]})
+        if disconnectStatusCode == 1000 or disconnectStatusCode == 1001:
+            connections.update_item(Key={"group_id": result[0]["group_id"], "client_id": result[0]["client_id"]}, 
+                    UpdateExpression="SET connection_id = :connection_id",
+                    ExpressionAttributeValues={":connection_id": "X"})
+        else:
+            connection_info = connections.query(KeyConditionExpression=Key("group_id").eq(result[0]["group_id"]))
+            connection_info = connection_info["Items"][0]
+
+            if connection_info["account_ids"]:
+                reset_account_state(account_ids=connection_info["account_ids"])
+            
+            connections.delete_item(Key={"group_id": result[0]["group_id"], "client_id": result[0]["client_id"]})
     else:
         group = connections.query(KeyConditionExpression=Key("group_id").eq(result[0]["group_id"]))
         group = group["Items"]
