@@ -201,3 +201,9 @@ async def update_account_interactions(data: dict, filters: dict, db: Session):
 
     await update(model=models.AccountInteraction, data={"interactions": target_interactions}, filters={"username": data['username']}, db=db)
     return await update(model=models.AccountInteraction, data={"interactions": sender_interactions}, filters={"username": filters['username']}, db=db)
+
+def reset_account_state(account_ids: list):
+    with Session() as db:
+        db.query(models.NaverAccount).filter(models.NaverAccount.id.in_(account_ids)).update({"status": 0}, synchronize_session=False)
+        db.commit()
+        db.close()
