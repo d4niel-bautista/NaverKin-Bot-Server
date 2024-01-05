@@ -140,6 +140,7 @@ async def fetch_interactions(db: Session):
     for index, item in enumerate(interactions):
         item_object = item.model_dump()
         item_object["levelup_id"] = accounts[index].levelup_id
+        item_object["status"] = accounts[index].status
         item_object["category"] = accounts[index].category
         item_object["level"] = accounts[index].level
         joined_list.append(item_object)
